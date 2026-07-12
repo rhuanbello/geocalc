@@ -1,0 +1,10 @@
+* text=auto
+
+*.xlsx binary
+*.xls binary
+*.xlsm binary
+*.ods binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
