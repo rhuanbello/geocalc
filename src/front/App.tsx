@@ -344,13 +344,12 @@ export function App() {
 }
 
 function AppSidebar() {
+  const logoUrl = `${import.meta.env.BASE_URL}brand/logo-geoquimica-colorido.png`;
+
   return (
     <aside className="app-sidebar" aria-label="Navegação principal">
       <div className="institution-brand">
-        <img
-          src="/brand/logo-geoquimica-colorido.png"
-          alt="PPG Geoquímica UFF"
-        />
+        <img src={logoUrl} alt="PPG Geoquímica UFF" />
         <div>
           <strong className="wordmark">GeoCalc</strong>
           <span>PPG Geoquímica / UFF</span>
