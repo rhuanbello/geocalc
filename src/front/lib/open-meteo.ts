@@ -70,12 +70,13 @@ export async function fetchClimateNormals(params: {
   timezone: string;
   startYear: number;
   endYear: number;
+  effectiveEndDate: string;
 }): Promise<ClimateAggregationResult> {
   const query = new URLSearchParams({
     latitude: params.latitude.toString(),
     longitude: params.longitude.toString(),
     start_date: `${params.startYear}-01-01`,
-    end_date: `${params.endYear}-12-31`,
+    end_date: params.effectiveEndDate,
     daily: "temperature_2m_mean,precipitation_sum",
     timezone: params.timezone || "auto",
     temperature_unit: "celsius",
@@ -90,5 +91,8 @@ export async function fetchClimateNormals(params: {
   }
 
   const payload = (await response.json()) as ArchiveResponse;
-  return aggregateDailyClimateToMonthlyNormals(payload.daily);
+  return aggregateDailyClimateToMonthlyNormals(payload.daily, {
+    requireCompleteMonths: true,
+    effectiveEndDate: params.effectiveEndDate,
+  });
 }

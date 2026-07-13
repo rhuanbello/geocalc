@@ -46,7 +46,7 @@ export type WaterBalanceResult = {
 export const MONTHS = [
   { month: 1, name: "Janeiro", short: "Jan" },
   { month: 2, name: "Fevereiro", short: "Fev" },
-  { month: 3, name: "Marco", short: "Mar" },
+  { month: 3, name: "Março", short: "Mar" },
   { month: 4, name: "Abril", short: "Abr" },
   { month: 5, name: "Maio", short: "Mai" },
   { month: 6, name: "Junho", short: "Jun" },
@@ -230,7 +230,7 @@ function collectInputErrors(inputs: MonthlyInput[]): string[] {
     const monthName = MONTHS[index].name;
 
     if (input.precipitation !== null && input.precipitation < 0) {
-      errors.push(`${monthName}: precipitacao nao pode ser negativa.`);
+      errors.push(`${monthName}: precipitação não pode ser negativa.`);
     }
 
     if (

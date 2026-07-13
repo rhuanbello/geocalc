@@ -5,6 +5,10 @@ node_modules/
 dist/
 build/
 
+# local reference spreadsheets
+*.xlsx
+*.xls
+
 # local env
 .env
 .env.*
@@ -14,6 +18,8 @@ build/
 .vite/
 .turbo/
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 node_modules/.tmp/
 

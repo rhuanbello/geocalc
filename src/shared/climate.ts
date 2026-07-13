@@ -25,15 +25,29 @@ type MonthYearAccumulator = {
   temperatureDays: number;
   precipitationTotal: number;
   precipitationDays: number;
+  observedDays: Set<number>;
+};
+
+type ClimateAggregationOptions = {
+  requireCompleteMonths?: boolean;
+  effectiveEndDate?: string;
 };
 
 export function aggregateDailyClimateToMonthlyNormals(
   daily: DailyClimateSeries,
+  options: ClimateAggregationOptions = {},
 ): ClimateAggregationResult {
   const byYearMonth = new Map<string, MonthYearAccumulator>();
+  const effectiveEndTime = options.effectiveEndDate
+    ? Date.parse(`${options.effectiveEndDate}T00:00:00Z`)
+    : null;
 
   daily.time.forEach((date, index) => {
-    const [year, month] = date.split("-");
+    if (effectiveEndTime !== null && Date.parse(`${date}T00:00:00Z`) > effectiveEndTime) {
+      return;
+    }
+
+    const [year, month, day] = date.split("-");
     if (!year || !month) {
       return;
     }
@@ -46,9 +60,15 @@ export function aggregateDailyClimateToMonthlyNormals(
         temperatureDays: 0,
         precipitationTotal: 0,
         precipitationDays: 0,
+        observedDays: new Set<number>(),
       };
     const temperature = daily.temperature_2m_mean[index];
     const precipitation = daily.precipitation_sum[index];
+    const dayNumber = Number(day);
+
+    if (Number.isInteger(dayNumber)) {
+      accumulator.observedDays.add(dayNumber);
+    }
 
     if (typeof temperature === "number" && Number.isFinite(temperature)) {
       accumulator.temperatureTotal += temperature;
@@ -69,7 +89,18 @@ export function aggregateDailyClimateToMonthlyNormals(
       key.endsWith(`-${monthKey}`),
     );
     const validYearMonthValues = yearMonthValues
-      .map(([, value]) => {
+      .map(([key, value]) => {
+        const [year] = key.split("-");
+        const expectedDays = daysInMonth(Number(year), monthInfo.month);
+        const hasCompleteMonth =
+          value.observedDays.size === expectedDays &&
+          value.temperatureDays === expectedDays &&
+          value.precipitationDays === expectedDays;
+
+        if (options.requireCompleteMonths && !hasCompleteMonth) {
+          return null;
+        }
+
         if (value.temperatureDays === 0 || value.precipitationDays === 0) {
           return null;
         }
@@ -116,4 +147,8 @@ export function aggregateDailyClimateToMonthlyNormals(
 
 function average(values: number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
