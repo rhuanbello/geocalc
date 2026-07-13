@@ -47,7 +47,10 @@ describe("Excel export", () => {
     expect(mainSheet).toBeDefined();
     expect(chartSheet).toBeDefined();
     expect(mainSheet?.getCell("A1").value).toBe("PPG Geoquímica/UFF");
-    expect(mainSheet?.getCell("A2").value).toBe("Ecocalc - Balanço hídrico");
+    expect(mainSheet?.getCell("A2").value).toBe("GeoCalc - Balanço hídrico");
+    expect(mainSheet?.getCell("A3").value).toBe(
+      "Base técnica: cálculos fornecidos por Edison Dausacker Bidone",
+    );
     expect(mainSheet?.getCell("C4").value).toBe(
       "Niterói, Rio de Janeiro, Brasil",
     );

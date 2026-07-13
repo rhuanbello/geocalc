@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Favicon Geoquímica">
+  <rect width="64" height="64" rx="14" fill="#1A3B29"/>
+  <path d="M15 18h34" stroke="#6EC1E4" stroke-width="5" stroke-linecap="round"/>
+  <path d="M20 30c5-5 12-5 17 0s12 5 17 0" fill="none" stroke="#61CE70" stroke-width="5" stroke-linecap="round"/>
+  <path d="M18 43h28" stroke="#009B6E" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="47" cy="43" r="4" fill="#6EC1E4"/>
+</svg>

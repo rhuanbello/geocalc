@@ -38,19 +38,19 @@ export async function exportWaterBalanceWorkbook(
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "ecocalc-balanco-hidrico.xlsx";
+  anchor.download = "geocalc-balanco-hidrico.xlsx";
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
 export function createWaterBalanceWorkbook(params: WaterBalanceWorkbookParams) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Ecocalc";
-  workbook.lastModifiedBy = "Ecocalc";
+  workbook.creator = "GeoCalc";
+  workbook.lastModifiedBy = "GeoCalc";
   workbook.created = new Date();
   workbook.modified = new Date();
   workbook.subject = "Balanço hídrico";
-  workbook.title = "Ecocalc - Balanço hídrico";
+  workbook.title = "GeoCalc - Balanço hídrico";
 
   buildMainSheet(workbook, params);
   buildChartDataSheet(workbook, params.result.rows);
@@ -83,8 +83,16 @@ function buildMainSheet(
   sheet.getCell("A1").style = titleStyle(18, "FFFFFFFF", brandDark);
 
   sheet.mergeCells("A2:H2");
-  sheet.getCell("A2").value = "Ecocalc - Balanço hídrico";
+  sheet.getCell("A2").value = "GeoCalc - Balanço hídrico";
   sheet.getCell("A2").style = titleStyle(14, "FFFFFFFF", brandGreen);
+
+  sheet.mergeCells("A3:H3");
+  sheet.getCell("A3").value =
+    "Base técnica: cálculos fornecidos por Edison Dausacker Bidone";
+  sheet.getCell("A3").style = {
+    font: { italic: true, color: { argb: textMuted }, name: "Roboto" },
+    alignment: { vertical: "middle", horizontal: "center" },
+  };
 
   sheet.mergeCells("A4:B4");
   sheet.getCell("A4").value = "Local";

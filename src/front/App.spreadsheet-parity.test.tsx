@@ -141,6 +141,9 @@ describe("App spreadsheet parity", () => {
     ) as HTMLTextAreaElement;
     expect(report.value).toContain("Precipitação total: 1.340,0 mm");
     expect(report.value).toContain("Data final efetiva da importação: 08/07/2026");
+    expect(report.value).toContain(
+      "Base técnica: cálculos fornecidos por Edison Dausacker Bidone.",
+    );
     expect(report.value).toContain("ETP corrigida total: 941,9 mm");
     expect(report.value).toContain("Balanço hídrico anual: 398,1 mm");
     expect(report.value).toContain("Índice calorimétrico anual I: 95,902");

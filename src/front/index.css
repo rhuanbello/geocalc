@@ -156,6 +156,13 @@ button:disabled {
   background: rgb(255 255 255 / 0.05);
 }
 
+.sidebar-note span {
+  display: block;
+  margin-top: 10px;
+  color: rgb(248 243 233 / 0.9);
+  font-weight: 700;
+}
+
 .app-shell {
   width: min(100%, 1560px);
   margin: 0 auto;

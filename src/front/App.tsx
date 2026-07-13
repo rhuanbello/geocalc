@@ -352,7 +352,7 @@ function AppSidebar() {
           alt="PPG Geoquímica UFF"
         />
         <div>
-          <strong className="wordmark">Ecocalc</strong>
+          <strong className="wordmark">GeoCalc</strong>
           <span>PPG Geoquímica / UFF</span>
         </div>
       </div>
@@ -378,6 +378,9 @@ function AppSidebar() {
 
       <p className="sidebar-note">
         Ferramenta educacional para cálculo e interpretação do balanço hídrico.
+        <span>
+          Cálculos fornecidos por Edison Dausacker Bidone.
+        </span>
       </p>
     </aside>
   );
@@ -957,6 +960,7 @@ function buildReport(params: {
         ? "Open-Meteo Historical Weather API"
         : "entrada manual"
     }`,
+    "Base técnica: cálculos fornecidos por Edison Dausacker Bidone.",
     `Situação: ${completionNote}`,
     "",
     "Resumo anual:",

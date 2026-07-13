@@ -1,4 +1,4 @@
-# Ecocalc
+# GeoCalc
 
 Aplicação educacional para transformar cálculos ambientais de planilhas
 técnicas em uma experiência mais clara para aulas, trabalhos e pesquisas.
@@ -6,6 +6,11 @@ técnicas em uma experiência mais clara para aulas, trabalhos e pesquisas.
 A primeira versão implementa o módulo de Balanço Hídrico. A ideia é preservar
 o rigor dos cálculos originais e, ao mesmo tempo, tornar cada entrada, fator e
 resultado mais fácil de explorar por quem não trabalha diretamente com a área.
+
+A base técnica dos cálculos foi fornecida por Edison Dausacker Bidone,
+professor titular do Departamento de Geoquímica da Universidade Federal
+Fluminense, com atuação em Geoquímica Ambiental, modelagem geoquímica,
+análise de risco e gestão ambiental.
 
 ## Como funciona
 
@@ -38,6 +43,8 @@ bun run build
 - Open-Meteo Historical Weather API
 - OpenStreetMap via Leaflet
 - Identidade visual do PPG Geoquímica/UFF
+- Perfil público de Edison Dausacker Bidone no Escavador:
+  https://www.escavador.com/sobre/8523601/edison-dausacker-bidone
 
 ## Referência técnica
 
@@ -45,3 +52,9 @@ A planilha original é usada como referência técnica do projeto, mas não deve
 ser versionada no repositório. Os dados da planilha não são usados como valores
 iniciais da interface; eles servem como caso de regressão nos testes
 automatizados.
+
+## Deploy
+
+O projeto é publicado no GitHub Pages a partir da branch `main`:
+
+https://rhuanbello.github.io/geocalc/

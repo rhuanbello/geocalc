@@ -20,7 +20,7 @@ test("preenche os valores da planilha e reproduz os resultados arredondados na U
 }) => {
   await page.goto("/");
 
-  await expect(page.getByText("Ecocalc")).toBeVisible();
+  await expect(page.getByText("GeoCalc")).toBeVisible();
   await expect(page.getByRole("link", { name: /Balanço Hídrico/i })).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Preencher com dados climáticos/i }),
