@@ -1,5 +1,5 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from "bun:test";
 import type { ReactNode } from "react";
 
 GlobalRegistrator.register();
@@ -62,8 +62,13 @@ const spreadsheetRows = [
   { month: "Dezembro", precipitation: "97", temperature: "23.3" },
 ];
 
+beforeEach(() => {
+  setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
+});
+
 afterEach(() => {
   cleanup();
+  setSystemTime();
 });
 
 describe("App spreadsheet parity", () => {

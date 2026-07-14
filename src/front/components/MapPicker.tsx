@@ -1,5 +1,8 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import markerIcon2xUrl from "leaflet/dist/images/marker-icon-2x.png";
+import markerIconUrl from "leaflet/dist/images/marker-icon.png";
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { useEffect, useRef } from "react";
 
 export type MapPoint = {
@@ -11,6 +14,12 @@ type MapPickerProps = {
   point: MapPoint | null;
   onPointChange: (point: MapPoint) => void;
 };
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2xUrl,
+  iconUrl: markerIconUrl,
+  shadowUrl: markerShadowUrl,
+});
 
 export function MapPicker({ point, onPointChange }: MapPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
