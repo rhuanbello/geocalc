@@ -25,10 +25,12 @@ type SearchStatus = "idle" | "loading" | "success" | "error";
 
 export function LocationCombobox({
   value,
+  fallbackLabel,
   onChange,
   onError,
 }: {
   value: LocationSearchResult | null;
+  fallbackLabel?: string;
   onChange: (location: LocationSearchResult | null) => void;
   onError?: (message: string | null) => void;
 }) {
@@ -78,7 +80,10 @@ export function LocationCombobox({
     return () => window.clearTimeout(timeout);
   }, [query, onError]);
 
-  const selectedLabel = value ? locationLabel(value) : "Buscar cidade ou local";
+  const hasSelection = Boolean(value || fallbackLabel);
+  const selectedLabel = value
+    ? locationLabel(value)
+    : fallbackLabel ?? "Buscar cidade ou local";
   const emptyMessage = useMemo(() => {
     if (status === "loading") {
       return "Buscando locais...";
@@ -106,14 +111,14 @@ export function LocationCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn("location-combobox-trigger", !value && "is-empty")}
+            className={cn("location-combobox-trigger", !hasSelection && "is-empty")}
           >
             <span className="location-combobox-value">
               <MapPin />
               {selectedLabel}
             </span>
             <span className="location-combobox-actions">
-              {value ? (
+              {hasSelection ? (
                 <X
                   aria-label="Limpar local selecionado"
                   onClick={(event) => {

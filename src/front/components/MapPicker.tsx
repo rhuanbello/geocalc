@@ -15,10 +15,14 @@ type MapPickerProps = {
   onPointChange: (point: MapPoint) => void;
 };
 
-L.Icon.Default.mergeOptions({
+const markerIcon = L.icon({
   iconRetinaUrl: markerIcon2xUrl,
   iconUrl: markerIconUrl,
   shadowUrl: markerShadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
 });
 
 export function MapPicker({ point, onPointChange }: MapPickerProps) {
@@ -72,7 +76,7 @@ export function MapPicker({ point, onPointChange }: MapPickerProps) {
     map.setView(latLng, Math.max(map.getZoom(), 7), { animate: true });
 
     if (!markerRef.current) {
-      markerRef.current = L.marker(latLng).addTo(map);
+      markerRef.current = L.marker(latLng, { icon: markerIcon }).addTo(map);
     } else {
       markerRef.current.setLatLng(latLng);
     }

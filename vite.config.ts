@@ -4,7 +4,7 @@ import path from "node:path";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/geocalc/",
+  base: process.env.VITE_BASE_PATH ?? "/geocalc/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

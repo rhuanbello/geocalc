@@ -18,6 +18,7 @@ export type ClimateAggregationResult = {
   monthly: MonthlyClimateNormal[];
   inputs: MonthlyInput[];
   missingMonths: number[];
+  fromCache?: boolean;
 };
 
 type MonthYearAccumulator = {

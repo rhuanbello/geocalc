@@ -35,6 +35,8 @@ jobs:
         run: bun run test
 
       - name: Build
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: bun run build
 
       - name: Upload artifact

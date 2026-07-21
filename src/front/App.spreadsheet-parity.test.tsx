@@ -5,29 +5,42 @@ import type { ReactNode } from "react";
 GlobalRegistrator.register();
 
 mock.module("@/components/MapPicker", () => ({
-  MapPicker: () => <div data-testid="map-picker" />,
-}));
-
-mock.module("@/lib/open-meteo", () => ({
-  fetchClimateNormals: mock(),
-  searchLocations: mock(async () => [
-    {
-      id: 1,
-      name: "Niterói",
-      admin1: "Rio de Janeiro",
-      country: "Brasil",
-      latitude: -22.8832,
-      longitude: -43.1034,
-      timezone: "America/Sao_Paulo",
-    },
-  ]),
+  MapPicker: ({
+    onPointChange,
+  }: {
+    onPointChange: (point: { latitude: number; longitude: number }) => void;
+  }) => (
+    <button
+      data-testid="map-picker"
+      type="button"
+      onClick={() => onPointChange({ latitude: -15.7801, longitude: -47.9292 })}
+    >
+      Selecionar ponto no mapa
+    </button>
+  ),
 }));
 
 mock.module("recharts", () => {
   const passthrough =
     (name: string) =>
-    ({ children }: { children?: ReactNode }) =>
-      <div data-testid={`recharts-${name}`}>{children}</div>;
+    ({
+      children,
+      dataKey,
+      name: seriesName,
+    }: {
+      children?: ReactNode;
+      dataKey?: string;
+      name?: string;
+    }) =>
+      (
+        <div
+          data-key={dataKey}
+          data-series-name={seriesName}
+          data-testid={`recharts-${name}`}
+        >
+          {children}
+        </div>
+      );
 
   return {
     Bar: passthrough("bar"),
@@ -64,11 +77,45 @@ const spreadsheetRows = [
 
 beforeEach(() => {
   setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url.includes("nominatim.openstreetmap.org")) {
+      return {
+        ok: true,
+        json: async () => ({
+          address: {
+            city: "Brasília",
+            state: "Distrito Federal",
+            country: "Brasil",
+          },
+        }),
+      };
+    }
+
+    return {
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            id: 1,
+            name: "Niterói",
+            admin1: "Rio de Janeiro",
+            country: "Brasil",
+            latitude: -22.8832,
+            longitude: -43.1034,
+            timezone: "America/Sao_Paulo",
+          },
+        ],
+      }),
+    };
+  }) as typeof fetch;
 });
 
 afterEach(() => {
   cleanup();
   setSystemTime();
+  mock.restore();
 });
 
 describe("App spreadsheet parity", () => {
@@ -86,7 +133,48 @@ describe("App spreadsheet parity", () => {
     await user.click(screen.getByText("Niterói"));
 
     expect(screen.getAllByText(/-22,8832/).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: /Preencher com dados climáticos/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Importar dados climáticos/i })).toBeTruthy();
+  });
+
+  test("renderiza metodologia, fontes e presets climáticos", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByText("Conceitos básicos e metodologia")).toBeTruthy();
+    expect(screen.getByText("O que é o balanço hídrico")).toBeTruthy();
+    expect(screen.getByText("Vazão como aplicação futura")).toBeTruthy();
+    expect(screen.getByText(/BH = P - Etp corrigida/)).toBeTruthy();
+    expect(screen.getByText(/i = \(t \/ 5\)\^1,514/)).toBeTruthy();
+    expect(screen.getAllByText(/I = soma\(i\)/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/675 \* 10\^-9/)).toBeTruthy();
+    expect(screen.getByText(/Etp corrigida = Etp \* FC/)).toBeTruthy();
+    expect(screen.getAllByText(/Thornthwaite/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Como os dados climáticos são calculados")).toBeTruthy();
+    expect(screen.getByText("De dias para meses")).toBeTruthy();
+    expect(screen.getByText("Meses incompletos")).toBeTruthy();
+    expect(screen.getAllByText(/dados diários/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Referências e fontes")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open-Meteo Historical Weather API" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Nominatim" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "OpenStreetMap" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Thornthwaite, 1948" })).toHaveProperty(
+      "href",
+      "https://www.jstor.org/stable/210739?origin=crossref",
+    );
+    expect(screen.queryByText(/Edison/)).toBeNull();
+    expect(screen.queryByText(/apostila/i)).toBeNull();
+    expect(screen.queryByText("Parâmetros e fórmulas")).toBeNull();
+    expect(screen.queryByText("Leitura rápida")).toBeNull();
+    expect(screen.queryByText("Fatores de correção")).toBeNull();
+    expect(screen.queryByText("2001-2026")).toBeNull();
+    expect(screen.queryByLabelText("Início")).toBeNull();
+    expect(screen.queryByLabelText("Fim")).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Período de referência" }).textContent).toContain("1991-2020");
+
+    await chooseCombobox(user, "Período de referência", "Personalizado");
+
+    expect((screen.getByLabelText("Início") as HTMLInputElement).value).toBe("1991");
+    expect((screen.getByLabelText("Fim") as HTMLInputElement).value).toBe("2020");
   });
 
   test("mantem estados decimais intermediarios nos campos de entrada", () => {
@@ -112,9 +200,6 @@ describe("App spreadsheet parity", () => {
   test("preenche os valores da planilha e exibe os resultados arredondados esperados", async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
-
-    await user.selectOptions(screen.getByLabelText("Hemisfério"), "south");
-    await user.selectOptions(screen.getByLabelText("Latitude de fator"), "30");
 
     for (const row of spreadsheetRows) {
       fireEvent.change(screen.getByLabelText(`Precipitação de ${row.month}`), {
@@ -142,13 +227,14 @@ describe("App spreadsheet parity", () => {
     expect(rowText(container, "Junho")).toContain("105,0");
 
     const report = screen.getByDisplayValue(
-      /Relatório didático/,
+      /Síntese dos resultados/,
     ) as HTMLTextAreaElement;
     expect(report.value).toContain("Precipitação total: 1.340,0 mm");
-    expect(report.value).toContain("Data final efetiva da importação: 08/07/2026");
-    expect(report.value).toContain(
-      "Base técnica: cálculos fornecidos por Edison Dausacker Bidone.",
-    );
+    expect(report.value).toContain("Data final efetiva da importação: 31/12/2020");
+    expect(report.value).toContain("Base técnica e metodológica preparada para o GeoCalc.");
+    expect(report.value).toContain("Modelo: ERA5");
+    expect(report.value).not.toContain("Edison");
+    expect(report.value).not.toContain("apostila");
     expect(report.value).toContain("ETP corrigida total: 941,9 mm");
     expect(report.value).toContain("Balanço hídrico anual: 398,1 mm");
     expect(report.value).toContain("Índice calorimétrico anual I: 95,902");
@@ -156,7 +242,54 @@ describe("App spreadsheet parity", () => {
     expect(report.value).toContain("Maior déficit: Janeiro (-27,5 mm)");
     expect(report.value).toContain("Maior superávit: Junho (105,0 mm)");
     expect(screen.getByText("Entenda as variáveis")).toBeTruthy();
+    expect(screen.getAllByText("SH").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("DH").length).toBeGreaterThan(0);
     expect(screen.queryByText("Preenchimento manual")).toBeNull();
+    expect(screen.queryByText("A tabela começa vazia.")).toBeNull();
+    expect(screen.queryByText("Relatório didático")).toBeNull();
+  });
+
+  test("exibe coordenada selecionada no mapa no campo de local", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByText("Selecionar ponto no mapa"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: "Buscar local" }).textContent).toContain(
+        "Brasília",
+      );
+    });
+    expect(screen.getAllByText(/-15,7801/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Hemisfério").length).toBeGreaterThan(0);
+    expect(screen.getByText("Latitude")).toBeTruthy();
+    expect(screen.getByText("Longitude")).toBeTruthy();
+    expect(screen.getAllByText("Latitude de fator").length).toBeGreaterThan(0);
+  });
+
+  test("simplifica a sidebar", () => {
+    render(<App />);
+
+    expect(screen.getByText("Balanço Hídrico")).toBeTruthy();
+    expect(screen.queryByText("Modelos geoquímicos")).toBeNull();
+    expect(screen.queryByText(/Ferramenta educacional/)).toBeNull();
+  });
+
+  test("usa linhas para precipitacao e ETP e barras para BH", () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Precipitação de Janeiro"), {
+      target: { value: "111" },
+    });
+    fireEvent.change(screen.getByLabelText("Temperatura de Janeiro"), {
+      target: { value: "24,7" },
+    });
+
+    const bars = screen.getAllByTestId("recharts-bar");
+    const lines = screen.getAllByTestId("recharts-line");
+
+    expect(bars.some((bar) => bar.getAttribute("data-key") === "balance")).toBe(true);
+    expect(lines.some((line) => line.getAttribute("data-key") === "precipitation")).toBe(true);
+    expect(lines.some((line) => line.getAttribute("data-key") === "correctedEtp")).toBe(true);
   });
 
   test("exibe a ação de exportar Excel", () => {
@@ -186,4 +319,14 @@ function rowText(container: HTMLElement, month: string): string {
   }
 
   return row.textContent ?? "";
+}
+
+async function chooseCombobox(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  option: string,
+) {
+  await user.click(screen.getByRole("combobox", { name: label }));
+  const matches = screen.getAllByText(option);
+  await user.click(matches[matches.length - 1]);
 }

@@ -4,13 +4,11 @@ import {
   Calculator,
   Clipboard,
   CloudSun,
-  Database,
   Download,
   FileText,
   Info,
   Loader2,
   MapPin,
-  SlidersHorizontal,
   TriangleAlert,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
@@ -26,8 +24,11 @@ import {
 } from "recharts";
 import { LocationCombobox } from "@/components/LocationCombobox";
 import { MapPicker, type MapPoint } from "@/components/MapPicker";
+import { StaticCombobox } from "@/components/StaticCombobox";
 import {
   fetchClimateNormals,
+  reverseGeocodePoint,
+  CLIMATE_MODEL_LABEL,
   type LocationSearchResult,
 } from "@/lib/open-meteo";
 import {
@@ -41,6 +42,14 @@ import {
   type MonthlyWaterBalance,
 } from "$/water-balance";
 import { formatIsoDatePtBr } from "$/date-format";
+import {
+  CLIMATE_IMPORT_METHODOLOGY,
+  REFERENCE_SOURCES,
+  WATER_BALANCE_FORMULAS,
+  WATER_BALANCE_METHODOLOGY,
+  getClimatePeriodPresets,
+  type ClimatePeriodPresetId,
+} from "$/academic";
 
 type SourceState = "manual" | "imported";
 
@@ -50,12 +59,17 @@ type MonthlyTextInput = {
 };
 
 const CURRENT_YEAR = new Date().getFullYear();
-const DEFAULT_START_YEAR = 1990;
-const DEFAULT_END_YEAR = CURRENT_YEAR;
+const DEFAULT_START_YEAR = 1991;
+const DEFAULT_END_YEAR = 2020;
+const CLIMATE_PERIOD_PRESETS = getClimatePeriodPresets();
 const EMPTY_MONTHLY_TEXT_INPUTS: MonthlyTextInput[] = MONTHS.map(() => ({
   precipitation: "",
   temperature: "",
 }));
+const HEMISPHERE_OPTIONS: Array<{ value: Hemisphere; label: string }> = [
+  { value: "south", label: "Sul" },
+  { value: "north", label: "Norte" },
+];
 
 function formatNumber(value: number | null | undefined, digits = 1): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
@@ -102,14 +116,21 @@ function parseDecimalText(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function locationLabel(location: LocationSearchResult | null): string {
+function locationLabel(
+  location: LocationSearchResult | null,
+  point?: MapPoint | null,
+): string {
   if (!location) {
-    return "Ponto manual";
+    return point ? "Coordenada selecionada no mapa" : "Sem local selecionado";
   }
 
   return [location.name, location.admin1, location.country]
     .filter(Boolean)
     .join(", ");
+}
+
+function selectedCoordinateLabel(point: MapPoint | null): string | undefined {
+  return point ? "Coordenada selecionada no mapa" : undefined;
 }
 
 function getEffectiveEndDate(endYear: number): string {
@@ -137,9 +158,12 @@ export function App() {
     hemisphere: "south",
     latitude: 30,
   });
+  const [periodPreset, setPeriodPreset] =
+    useState<ClimatePeriodPresetId>("1991-2020");
   const [startYear, setStartYear] = useState(DEFAULT_START_YEAR);
   const [endYear, setEndYear] = useState(DEFAULT_END_YEAR);
   const [isImporting, setIsImporting] = useState(false);
+  const [isIdentifyingLocation, setIsIdentifyingLocation] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [missingMonths, setMissingMonths] = useState<number[]>([]);
@@ -167,6 +191,7 @@ export function App() {
         endYear,
         effectiveEndDate,
         sourceState,
+        climateModel: CLIMATE_MODEL_LABEL,
       }),
     [
       waterBalance,
@@ -201,6 +226,33 @@ export function App() {
     setStatusMessage(
       "Local selecionado. Você pode preencher a tabela com dados climáticos ou editar os valores manualmente.",
     );
+  };
+
+  const updatePointFromMap = async (point: MapPoint) => {
+    setSelectedPoint(point);
+    setSelectedLocation(null);
+    setFactorSelection(nearestFactorSelection(point.latitude));
+    setErrorMessage(null);
+    setStatusMessage("Identificando local selecionado no mapa...");
+    setIsIdentifyingLocation(true);
+
+    try {
+      const location = await reverseGeocodePoint(point);
+      if (location) {
+        setSelectedLocation(location);
+        setStatusMessage("Local identificado. Você pode importar dados climáticos.");
+      } else {
+        setStatusMessage(
+          "Coordenada selecionada no mapa. Você pode importar dados climáticos.",
+        );
+      }
+    } catch {
+      setStatusMessage(
+        "Coordenada selecionada no mapa. Não foi possível identificar o nome do local agora.",
+      );
+    } finally {
+      setIsIdentifyingLocation(false);
+    }
   };
 
   const clearLocation = () => {
@@ -238,7 +290,9 @@ export function App() {
       setStatusMessage(
         result.missingMonths.length
           ? "Importação concluída com meses sem dados completos. Revise a tabela."
-          : "Dados climáticos importados. Os campos continuam editáveis.",
+          : result.fromCache
+            ? `Dados climáticos ${CLIMATE_MODEL_LABEL} recuperados do cache desta sessão. Os campos continuam editáveis.`
+            : `Dados climáticos ${CLIMATE_MODEL_LABEL} importados. Os campos continuam editáveis.`,
       );
     } catch (error) {
       setErrorMessage(
@@ -264,6 +318,28 @@ export function App() {
     setSourceState("manual");
   };
 
+  const updateStartYear = (value: number) => {
+    setStartYear(value);
+    setPeriodPreset("custom");
+  };
+
+  const updateEndYear = (value: number) => {
+    setEndYear(value);
+    setPeriodPreset("custom");
+  };
+
+  const updatePeriodPreset = (presetId: ClimatePeriodPresetId) => {
+    setPeriodPreset(presetId);
+    const preset = CLIMATE_PERIOD_PRESETS.find((item) => item.id === presetId);
+
+    if (!preset || preset.id === "custom") {
+      return;
+    }
+
+    setStartYear(preset.startYear);
+    setEndYear(preset.endYear === "current" ? CURRENT_YEAR : preset.endYear);
+  };
+
   const clearInputs = () => {
     setMonthlyTextInputs(EMPTY_MONTHLY_TEXT_INPUTS);
     setMissingMonths([]);
@@ -273,7 +349,7 @@ export function App() {
 
   const copyReport = async () => {
     await navigator.clipboard.writeText(report);
-    setStatusMessage("Relatório copiado.");
+    setStatusMessage("Síntese copiada.");
   };
 
   const exportExcel = async () => {
@@ -287,6 +363,7 @@ export function App() {
       endYear,
       effectiveEndDate,
       sourceState,
+      climateModel: CLIMATE_MODEL_LABEL,
     });
     setStatusMessage("Planilha Excel exportada.");
   };
@@ -298,29 +375,33 @@ export function App() {
       <main className="app-shell">
         <ModuleHeader result={waterBalance} />
 
-        <FactorStrip
-          factorSelection={factorSelection}
-          onFactorSelectionChange={setFactorSelection}
-          onClear={clearInputs}
-        />
+        <MethodologyPanel />
+
+        <ClimateMethodPanel />
 
         <ClimatePanel
           selectedLocation={selectedLocation}
           selectedPoint={selectedPoint}
+          factorSelection={factorSelection}
           startYear={startYear}
           endYear={endYear}
+          periodPreset={periodPreset}
           effectiveEndDate={effectiveEndDate}
           canImport={canImport}
           isImporting={isImporting}
+          isIdentifyingLocation={isIdentifyingLocation}
           statusMessage={statusMessage}
           errorMessage={errorMessage}
           missingMonths={missingMonths}
           waterBalanceErrors={waterBalance.errors}
           onPointChange={updatePoint}
+          onMapPointChange={(point) => void updatePointFromMap(point)}
           onLocationClear={clearLocation}
           onLocationSearchError={setErrorMessage}
-          onStartYearChange={setStartYear}
-          onEndYearChange={setEndYear}
+          onFactorSelectionChange={setFactorSelection}
+          onPeriodPresetChange={updatePeriodPreset}
+          onStartYearChange={updateStartYear}
+          onEndYearChange={updateEndYear}
           onImportClimate={() => void handleImportClimate()}
         />
 
@@ -329,6 +410,7 @@ export function App() {
           inputs={monthlyTextInputs}
           hasAnyInput={hasAnyInput}
           onInputChange={updateMonthlyInput}
+          onClearInputs={clearInputs}
         />
 
         <VariableGuide />
@@ -337,14 +419,16 @@ export function App() {
 
         <ReportPanel report={report} onCopy={copyReport} onExport={exportExcel} />
 
-        <LearningBand />
+        <ReferencePanel />
+
       </main>
     </div>
   );
 }
 
 function AppSidebar() {
-  const logoUrl = `${import.meta.env.BASE_URL}brand/logo-geoquimica-colorido.png`;
+  const baseUrl = import.meta.env.BASE_URL ?? "/";
+  const logoUrl = `${baseUrl}brand/logo-geoquimica-colorido.png`;
 
   return (
     <aside className="app-sidebar" aria-label="Navegação principal">
@@ -361,26 +445,7 @@ function AppSidebar() {
           <Calculator />
           <span>Balanço Hídrico</span>
         </a>
-        <span className="disabled">
-          <Database />
-          <span>Solos e sedimentos</span>
-        </span>
-        <span className="disabled">
-          <BarChart3 />
-          <span>Modelos geoquímicos</span>
-        </span>
-        <span className="disabled">
-          <BookOpen />
-          <span>Materiais de aula</span>
-        </span>
       </nav>
-
-      <p className="sidebar-note">
-        Ferramenta educacional para cálculo e interpretação do balanço hídrico.
-        <span>
-          Cálculos fornecidos por Edison Dausacker Bidone.
-        </span>
-      </p>
     </aside>
   );
 }
@@ -420,63 +485,46 @@ function ModuleHeader({
   );
 }
 
-function FactorStrip({
-  factorSelection,
-  onFactorSelectionChange,
-  onClear,
-}: {
-  factorSelection: FactorSelection;
-  onFactorSelectionChange: (selection: FactorSelection) => void;
-  onClear: () => void;
-}) {
+function MethodologyPanel() {
   return (
-    <section className="panel factor-strip">
+    <section className="panel methodology-panel">
       <PanelTitle
-        icon={<SlidersHorizontal className="size-4" />}
-        title="Fatores de correção"
-        description="A latitude de fator é sugerida automaticamente pela coordenada selecionada e pode ser ajustada quando necessário."
+        icon={<BookOpen className="size-4" />}
+        title="Conceitos básicos e metodologia"
+        description="Uma introdução ao método antes da tabela de cálculo."
       />
+      <div className="methodology-grid">
+        {WATER_BALANCE_METHODOLOGY.map((section) => (
+          <article key={section.title} className="methodology-card">
+            <h3>{section.title}</h3>
+            <p>{section.body}</p>
+          </article>
+        ))}
+      </div>
+      <div className="methodology-formula-block" aria-label="Fórmulas do balanço hídrico">
+        {WATER_BALANCE_FORMULAS.map((formula) => (
+          <code key={formula}>{formula}</code>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-      <div className="factor-controls">
-        <div className="field compact-field">
-          <label htmlFor="hemisphere">Hemisfério</label>
-          <select
-            id="hemisphere"
-            value={factorSelection.hemisphere}
-            onChange={(event) => {
-              const hemisphere = event.target.value as Hemisphere;
-              onFactorSelectionChange({
-                hemisphere,
-                latitude: SUPPORTED_LATITUDES[hemisphere][0],
-              });
-            }}
-          >
-            <option value="south">Sul</option>
-            <option value="north">Norte</option>
-          </select>
-        </div>
-        <div className="field compact-field">
-          <label htmlFor="latitude">Latitude de fator</label>
-          <select
-            id="latitude"
-            value={factorSelection.latitude}
-            onChange={(event) =>
-              onFactorSelectionChange({
-                ...factorSelection,
-                latitude: Number(event.target.value) as FactorSelection["latitude"],
-              })
-            }
-          >
-            {SUPPORTED_LATITUDES[factorSelection.hemisphere].map((latitude) => (
-              <option key={latitude} value={latitude}>
-                {latitude} graus
-              </option>
-            ))}
-          </select>
-        </div>
-        <button className="secondary-button" type="button" onClick={onClear}>
-          Limpar dados
-        </button>
+function ClimateMethodPanel() {
+  return (
+    <section className="panel climate-method-panel">
+      <PanelTitle
+        icon={<CloudSun className="size-4" />}
+        title="Como os dados climáticos são calculados"
+        description="O caminho entre os dados diários da fonte climática e os valores mensais usados na tabela."
+      />
+      <div className="climate-method-grid">
+        {CLIMATE_IMPORT_METHODOLOGY.map((section) => (
+          <article key={section.title} className="climate-method-card">
+            <h3>{section.title}</h3>
+            <p>{section.body}</p>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -485,36 +533,48 @@ function FactorStrip({
 function ClimatePanel({
   selectedLocation,
   selectedPoint,
+  factorSelection,
   startYear,
   endYear,
+  periodPreset,
   effectiveEndDate,
   canImport,
   isImporting,
+  isIdentifyingLocation,
   statusMessage,
   errorMessage,
   missingMonths,
   waterBalanceErrors,
   onPointChange,
+  onMapPointChange,
   onLocationClear,
   onLocationSearchError,
+  onFactorSelectionChange,
+  onPeriodPresetChange,
   onStartYearChange,
   onEndYearChange,
   onImportClimate,
 }: {
   selectedLocation: LocationSearchResult | null;
   selectedPoint: MapPoint | null;
+  factorSelection: FactorSelection;
   startYear: number;
   endYear: number;
+  periodPreset: ClimatePeriodPresetId;
   effectiveEndDate: string;
   canImport: boolean;
   isImporting: boolean;
+  isIdentifyingLocation: boolean;
   statusMessage: string | null;
   errorMessage: string | null;
   missingMonths: number[];
   waterBalanceErrors: string[];
   onPointChange: (point: MapPoint, location: LocationSearchResult | null) => void;
+  onMapPointChange: (point: MapPoint) => void;
   onLocationClear: () => void;
   onLocationSearchError: (message: string | null) => void;
+  onFactorSelectionChange: (selection: FactorSelection) => void;
+  onPeriodPresetChange: (preset: ClimatePeriodPresetId) => void;
   onStartYearChange: (value: number) => void;
   onEndYearChange: (value: number) => void;
   onImportClimate: () => void;
@@ -531,6 +591,13 @@ function ClimatePanel({
         <div className="climate-controls">
           <LocationCombobox
             value={selectedLocation}
+            fallbackLabel={
+              !selectedLocation
+                ? isIdentifyingLocation
+                  ? "Identificando local..."
+                  : selectedCoordinateLabel(selectedPoint)
+                : undefined
+            }
             onError={onLocationSearchError}
             onChange={(location) => {
               if (!location) {
@@ -548,37 +615,90 @@ function ClimatePanel({
             }}
           />
 
-          <div className="period-grid">
-            <div className="field">
-              <label htmlFor="start-year">Início</label>
-              <input
-                id="start-year"
-                type="number"
-                value={startYear}
-                min={1940}
-                max={CURRENT_YEAR}
-                onChange={(event) => onStartYearChange(Number(event.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="end-year">Fim</label>
-              <input
-                id="end-year"
-                type="number"
-                value={endYear}
-                min={1940}
-                max={CURRENT_YEAR}
-                onChange={(event) => onEndYearChange(Number(event.target.value))}
-              />
-            </div>
+          <div className="climate-factor-controls">
+            <StaticCombobox
+              id="hemisphere"
+              label="Hemisfério"
+              value={factorSelection.hemisphere}
+              options={HEMISPHERE_OPTIONS}
+              onChange={(hemisphere) =>
+                onFactorSelectionChange({
+                  hemisphere,
+                  latitude: SUPPORTED_LATITUDES[hemisphere][0],
+                })
+              }
+            />
+            <StaticCombobox
+              id="latitude"
+              label="Latitude de fator"
+              value={factorSelection.latitude}
+              options={SUPPORTED_LATITUDES[factorSelection.hemisphere].map(
+                (latitude) => ({
+                  value: latitude,
+                  label: `${latitude} graus`,
+                }),
+              )}
+              onChange={(latitude) =>
+                onFactorSelectionChange({
+                  ...factorSelection,
+                  latitude: Number(latitude) as FactorSelection["latitude"],
+                })
+              }
+            />
           </div>
+
+          <StaticCombobox
+            id="period-preset"
+            label="Período de referência"
+            className="period-combobox"
+            value={periodPreset}
+            options={CLIMATE_PERIOD_PRESETS.map((preset) => ({
+              value: preset.id,
+              label: preset.label,
+            }))}
+            onChange={(value) =>
+              onPeriodPresetChange(value as ClimatePeriodPresetId)
+            }
+          />
+
+          {periodPreset === "custom" ? (
+            <div className="period-grid">
+              <div className="field">
+                <label htmlFor="start-year">Início</label>
+                <input
+                  id="start-year"
+                  type="number"
+                  value={startYear}
+                  min={1940}
+                  max={CURRENT_YEAR}
+                  onChange={(event) =>
+                    onStartYearChange(Number(event.target.value))
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="end-year">Fim</label>
+                <input
+                  id="end-year"
+                  type="number"
+                  value={endYear}
+                  min={1940}
+                  max={CURRENT_YEAR}
+                  onChange={(event) =>
+                    onEndYearChange(Number(event.target.value))
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="import-card">
             <div>
-              <strong>Preencher com dados climáticos</strong>
+              <strong>Importar dados climáticos</strong>
               <span>
-                Usa Open-Meteo para calcular médias mensais do período
-                selecionado. Data final efetiva:{" "}
+                Usa Open-Meteo/{CLIMATE_MODEL_LABEL} para transformar dados
+                diários em médias mensais do período de referência. Modelo:{" "}
+                {CLIMATE_MODEL_LABEL}. Data final efetiva:{" "}
                 {formatIsoDatePtBr(effectiveEndDate)}.
               </span>
             </div>
@@ -589,21 +709,22 @@ function ClimatePanel({
               onClick={onImportClimate}
             >
               {isImporting ? <Loader2 className="spin" /> : <CloudSun />}
-              Preencher com dados climáticos
+              Importar dados climáticos
             </button>
           </div>
 
-          <div className="location-summary">
-            <span>{locationLabel(selectedLocation)}</span>
-            {selectedPoint ? (
-              <strong>
-                {formatCoordinate(selectedPoint.latitude)},{" "}
-                {formatCoordinate(selectedPoint.longitude)}
-              </strong>
-            ) : (
-              <strong>Sem ponto selecionado</strong>
-            )}
-          </div>
+          {selectedPoint ? (
+            <div className="coordinate-facts" aria-label="Coordenadas selecionadas">
+              <div>
+                <span>Latitude</span>
+                <strong>{formatCoordinate(selectedPoint.latitude)}</strong>
+              </div>
+              <div>
+                <span>Longitude</span>
+                <strong>{formatCoordinate(selectedPoint.longitude)}</strong>
+              </div>
+            </div>
+          ) : null}
 
           {!selectedPoint && (
             <div className="empty-inline">
@@ -635,11 +756,12 @@ function ClimatePanel({
                 .join(", ")}
             </div>
           )}
+
         </div>
 
         <MapPicker
           point={selectedPoint}
-          onPointChange={(point) => onPointChange(point, null)}
+          onPointChange={onMapPointChange}
         />
       </div>
     </section>
@@ -651,6 +773,7 @@ function CalculationTable({
   inputs,
   hasAnyInput,
   onInputChange,
+  onClearInputs,
 }: {
   rows: MonthlyWaterBalance[];
   inputs: MonthlyTextInput[];
@@ -660,42 +783,55 @@ function CalculationTable({
     field: keyof MonthlyTextInput,
     value: string,
   ) => void;
+  onClearInputs: () => void;
 }) {
   return (
     <section className="panel table-panel">
-      <PanelTitle
-        icon={<BarChart3 className="size-4" />}
-        title="Tabela de cálculo"
-        description="Precipitação e temperatura são entradas; as demais colunas são calculadas automaticamente."
-      />
-      {!hasAnyInput && (
-        <div className="empty-inline table-empty">
-          <Info />
-          <span>
-            A tabela começa vazia. Preencha manualmente os campos de P e T ou
-            use dados climáticos para popular os meses.
-          </span>
+      <div className="table-heading">
+        <PanelTitle
+          icon={<BarChart3 className="size-4" />}
+          title="Tabela de cálculo"
+          description="Precipitação e temperatura são entradas; as demais colunas são calculadas automaticamente."
+        />
+        <button
+          className="table-clear-button"
+          type="button"
+          disabled={!hasAnyInput}
+          onClick={onClearInputs}
+        >
+          Limpar dados
+        </button>
+      </div>
+      <div className="table-legend" aria-label="Legenda de entrada e saída">
+        <div>
+          <span className="legend-swatch input-swatch" />
+          Entrada
         </div>
-      )}
+        <div>
+          <span className="legend-swatch output-swatch" />
+          Saída calculada
+        </div>
+      </div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Mês</th>
-              <th>P (mm)</th>
-              <th>T (C)</th>
-              <th>Fator</th>
-              <th>i</th>
-              <th>ETP</th>
-              <th>ETP corr.</th>
-              <th>BH</th>
+              <th title="Mês de referência do cálculo">Mês</th>
+              <th className="input-column" title="P: precipitação mensal acumulada em milímetros">P (mm)</th>
+              <th className="input-column" title="T: temperatura média mensal em graus Celsius">T (C)</th>
+              <th className="output-column" title="FC: fator de correção mensal por hemisfério e latitude">Fator</th>
+              <th className="output-column" title="i: índice calorimétrico mensal calculado por (T / 5)^1,514">i</th>
+              <th className="output-column" title="ETP: evapotranspiração potencial mensal antes da correção">ETP</th>
+              <th className="output-column" title="ETP corrigida: ETP multiplicada pelo fator de correção mensal">ETP corr.</th>
+              <th className="output-column" title="SH: superávit hídrico, valores positivos do balanço hídrico">SH</th>
+              <th className="output-column" title="DH: déficit hídrico, valores negativos do balanço hídrico">DH</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={row.month}>
                 <td>{row.monthName}</td>
-                <td>
+                <td className="input-cell">
                   <input
                     value={inputs[index]?.precipitation ?? ""}
                     inputMode="decimal"
@@ -705,7 +841,7 @@ function CalculationTable({
                     aria-label={`Precipitação de ${row.monthName}`}
                   />
                 </td>
-                <td>
+                <td className="input-cell">
                   <input
                     value={inputs[index]?.temperature ?? ""}
                     inputMode="decimal"
@@ -715,12 +851,19 @@ function CalculationTable({
                     aria-label={`Temperatura de ${row.monthName}`}
                   />
                 </td>
-                <td>{formatNumber(row.correctionFactor, 2)}</td>
-                <td>{formatNumber(row.monthlyHeatIndex, 2)}</td>
-                <td>{formatNumber(row.etp, 1)}</td>
-                <td>{formatNumber(row.correctedEtp, 1)}</td>
-                <td className={(row.balance ?? 0) < 0 ? "negative" : "positive"}>
-                  {formatNumber(row.balance, 1)}
+                <td className="output-cell">{formatNumber(row.correctionFactor, 2)}</td>
+                <td className="output-cell">{formatNumber(row.monthlyHeatIndex, 2)}</td>
+                <td className="output-cell">{formatNumber(row.etp, 1)}</td>
+                <td className="output-cell">{formatNumber(row.correctedEtp, 1)}</td>
+                <td className="output-cell positive">
+                  {row.balance !== null && row.balance > 0
+                    ? formatNumber(row.balance, 1)
+                    : "-"}
+                </td>
+                <td className="output-cell negative">
+                  {row.balance !== null && row.balance < 0
+                    ? formatNumber(row.balance, 1)
+                    : "-"}
                 </td>
               </tr>
             ))}
@@ -761,11 +904,14 @@ function FullWidthChart({
                 formatter={(value) => `${formatNumber(Number(value), 1)} mm`}
                 labelFormatter={(label) => `Mês: ${label}`}
               />
-              <Bar
+              <Bar dataKey="balance" name="BH" fill="var(--leaf)" radius={[4, 4, 0, 0]} />
+              <Line
+                type="monotone"
                 dataKey="precipitation"
                 name="Precipitação"
-                fill="var(--water)"
-                radius={[4, 4, 0, 0]}
+                stroke="var(--water)"
+                strokeWidth={3}
+                dot={false}
               />
               <Line
                 type="monotone"
@@ -774,13 +920,6 @@ function FullWidthChart({
                 stroke="var(--sun)"
                 strokeWidth={3}
                 dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="balance"
-                name="BH"
-                stroke="var(--leaf)"
-                strokeWidth={3}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -812,14 +951,14 @@ function ReportPanel({
     <section className="panel report-panel">
       <PanelTitle
         icon={<FileText className="size-4" />}
-        title="Relatório didático"
-        description="Texto local para copiar em aula, trabalho ou pesquisa."
+        title="Síntese dos resultados"
+        description="Texto local para copiar em trabalhos, pesquisas e relatórios."
       />
       <textarea value={report} readOnly />
       <div className="button-row">
         <button className="action-button" type="button" onClick={() => void onCopy()}>
           <Clipboard />
-          Copiar relatório
+          Copiar síntese
         </button>
         <button className="secondary-button" type="button" onClick={() => void onExport()}>
           <Download />
@@ -830,17 +969,45 @@ function ReportPanel({
   );
 }
 
+function ReferencePanel() {
+  return (
+    <section className="panel reference-panel">
+      <PanelTitle
+        icon={<BookOpen className="size-4" />}
+        title="Referências e fontes"
+        description="Créditos metodológicos e fontes externas usadas na seleção de local, mapa e dados climáticos."
+      />
+      <div className="reference-grid">
+        {REFERENCE_SOURCES.map((source) => (
+          <article className="reference-card" key={source.label}>
+            {source.href ? (
+              <a href={source.href} target="_blank" rel="noreferrer">
+                {source.label}
+              </a>
+            ) : (
+              <strong>{source.label}</strong>
+            )}
+            <span>{source.description}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function VariableGuide() {
   const variables = [
     ["P", "Precipitação mensal acumulada, em milímetros."],
     ["T", "Temperatura média mensal, em graus Celsius."],
-    ["Fator", "Correção mensal associada ao hemisfério e à latitude."],
+    ["FC", "Fator de correção mensal associado ao hemisfério e à latitude."],
     ["i", "Índice calorimétrico mensal calculado a partir da temperatura."],
     ["I", "Soma anual dos índices calorimétricos mensais."],
     ["a", "Expoente anual usado na fórmula de Thornthwaite."],
     ["ETP", "Evapotranspiração potencial antes da correção mensal."],
     ["ETP corr.", "ETP multiplicada pelo fator mensal de correção."],
     ["BH", "Saldo mensal entre chuva e ETP corrigida."],
+    ["SH", "Superávit hídrico: valores positivos de BH."],
+    ["DH", "Déficit hídrico: valores negativos de BH."],
   ];
 
   return (
@@ -857,27 +1024,6 @@ function VariableGuide() {
             <span>{description}</span>
           </div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function LearningBand() {
-  return (
-    <section className="learning-band">
-      <div>
-        <h2>Leitura rápida</h2>
-        <p>
-          BH positivo indica excedente mensal entre precipitação e ETP
-          corrigida. BH negativo indica déficit potencial, quando a demanda
-          evaporativa supera a entrada de água pela chuva.
-        </p>
-      </div>
-      <div className="formula-strip">
-        <span>i = (T / 5)^1,514</span>
-        <span>I = soma(i)</span>
-        <span>ETP = 16 * (10T / I)^a</span>
-        <span>BH = P - ETPcorr</span>
       </div>
     </section>
   );
@@ -928,6 +1074,7 @@ function buildReport(params: {
   endYear: number;
   effectiveEndDate: string;
   sourceState: SourceState;
+  climateModel: string;
 }): string {
   const {
     result,
@@ -937,6 +1084,7 @@ function buildReport(params: {
     endYear,
     effectiveEndDate,
     sourceState,
+    climateModel,
   } = params;
   const deficit = result.annual.maxDeficit;
   const surplus = result.annual.maxSurplus;
@@ -948,18 +1096,19 @@ function buildReport(params: {
     : "O cálculo anual será completado quando todos os meses tiverem precipitação e temperatura.";
 
   return [
-    "Relatório didático - Balanço hídrico",
+    "Síntese dos resultados - Balanço hídrico",
     "",
-    `Local: ${locationLabel(location)}`,
+    `Local: ${locationLabel(location, point)}`,
     `Coordenadas: ${coordinates}`,
-    `Período climático: ${startYear}-${endYear}`,
+    `Período de referência: ${startYear}-${endYear}`,
     `Data final efetiva da importação: ${formatIsoDatePtBr(effectiveEndDate)}`,
     `Fonte dos dados: ${
       sourceState === "imported"
-        ? "Open-Meteo Historical Weather API"
+        ? `Open-Meteo Historical Weather API (${climateModel})`
         : "entrada manual"
     }`,
-    "Base técnica: cálculos fornecidos por Edison Dausacker Bidone.",
+    `Modelo: ${climateModel}`,
+    "Base técnica e metodológica preparada para o GeoCalc.",
     `Situação: ${completionNote}`,
     "",
     "Resumo anual:",
@@ -977,6 +1126,13 @@ function buildReport(params: {
     "",
     "Fórmulas:",
     "i = (T / 5)^1,514; I = soma(i); a = 675e-9 * I^3 - 771e-7 * I^2 + 0,01792 * I + 0,49239; ETP = 16 * (10 * T / I)^a; ETP corrigida = ETP * fator; BH = P - ETP corrigida.",
+    "",
+    "Referências e fontes:",
+    "- Referência metodológica: Thornthwaite, 1948: https://www.jstor.org/stable/210739?origin=crossref",
+    "- Open-Meteo Historical Weather API: https://open-meteo.com/en/docs/historical-weather-api",
+    "- OpenStreetMap: https://www.openstreetmap.org/copyright",
+    "- Leaflet: https://leafletjs.com/",
+    "- Nominatim: https://nominatim.org/release-docs/latest/api/Reverse/",
   ].join("\n");
 }
 

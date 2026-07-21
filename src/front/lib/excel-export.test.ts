@@ -35,36 +35,55 @@ describe("Excel export", () => {
         timezone: "America/Sao_Paulo",
       },
       point: { latitude: -22.8832, longitude: -43.1034 },
-      startYear: 1990,
-      endYear: 2026,
-      effectiveEndDate: "2026-07-08",
+      startYear: 1991,
+      endYear: 2020,
+      effectiveEndDate: "2020-12-31",
       sourceState: "imported",
+      climateModel: "ERA5",
     });
 
     const mainSheet = workbook.getWorksheet("Balanço hídrico");
     const chartSheet = workbook.getWorksheet("Dados para gráfico");
+    const referencesSheet = workbook.getWorksheet("Referências e fontes");
 
     expect(mainSheet).toBeDefined();
     expect(chartSheet).toBeDefined();
+    expect(referencesSheet).toBeDefined();
     expect(mainSheet?.getCell("A1").value).toBe("PPG Geoquímica/UFF");
     expect(mainSheet?.getCell("A2").value).toBe("GeoCalc - Balanço hídrico");
     expect(mainSheet?.getCell("A3").value).toBe(
-      "Base técnica: cálculos fornecidos por Edison Dausacker Bidone",
+      "Base técnica e metodológica preparada para o GeoCalc",
     );
     expect(mainSheet?.getCell("C4").value).toBe(
       "Niterói, Rio de Janeiro, Brasil",
     );
-    expect(mainSheet?.getCell("C7").value).toBe("08/07/2026");
-    expect(mainSheet?.getCell("A17").value).toBe("Mês");
-    expect(mainSheet?.getCell("A18").value).toBe("Janeiro");
-    expect(mainSheet?.getCell("B18").value).toBe(111);
-    expect(mainSheet?.getCell("G18").value as number).toBeCloseTo(138.5, 1);
-    expect(mainSheet?.getCell("A32").value).toBe("Legenda e interpretação");
-    expect(mainSheet?.getCell("A33").value).toBe("P");
-    expect(mainSheet?.getCell("B33").value).toContain("Precipitação mensal");
+    expect(mainSheet?.getCell("C6").value).toBe("1991-2020");
+    expect(mainSheet?.getCell("C7").value).toBe("31/12/2020");
+    expect(mainSheet?.getCell("A9").value).toBe("Modelo");
+    expect(mainSheet?.getCell("C9").value).toBe("ERA5");
+    expect(mainSheet?.getCell("A10").value).toBe("Data de geração");
+    expect(mainSheet?.getCell("A18").value).toBe("Mês");
+    expect(mainSheet?.getCell("A19").value).toBe("Janeiro");
+    expect(mainSheet?.getCell("B19").value).toBe(111);
+    expect(mainSheet?.getCell("G19").value as number).toBeCloseTo(138.5, 1);
+    expect(mainSheet?.getCell("H18").value).toBe("SH");
+    expect(mainSheet?.getCell("I18").value).toBe("DH");
+    expect(mainSheet?.getCell("I19").value as number).toBeCloseTo(-27.5, 1);
+    expect(mainSheet?.getCell("A33").value).toBe("Legenda, metodologia e interpretação");
+    expect(mainSheet?.getCell("A34").value).toBe("P");
+    expect(mainSheet?.getCell("B34").value).toContain("Precipitação mensal");
+    expect(mainSheet?.getCell("B45").value).toContain("ERA5");
 
     expect(chartSheet?.getCell("A1").value).toBe("Mês");
     expect(chartSheet?.getCell("B1").value).toBe("P (mm)");
     expect(chartSheet?.getCell("A13").value).toBe("Dezembro");
+    expect(referencesSheet?.getCell("A1").value).toBe("Fonte");
+    expect(referencesSheet?.getCell("A2").value).toBe("Thornthwaite, 1948");
+    expect(referencesSheet?.getCell("A3").value).toBe(
+      "Open-Meteo Historical Weather API",
+    );
+    expect(referencesSheet?.getCell("A6").value).toBe("Nominatim");
+    expect(JSON.stringify(workbook.model)).not.toContain("Edison");
+    expect(JSON.stringify(workbook.model)).not.toContain("apostila");
   });
 });
