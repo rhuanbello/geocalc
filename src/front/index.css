@@ -169,10 +169,6 @@ button:disabled {
 }
 
 .module-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.72fr);
-  gap: 18px;
-  align-items: stretch;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -202,94 +198,6 @@ h1 {
   margin: 10px 0 0;
   color: var(--muted);
   line-height: 1.55;
-}
-
-.header-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.metric-card {
-  position: relative;
-  min-height: 118px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-  padding: 15px 14px 14px;
-  border: 1px solid rgb(26 59 41 / 0.14);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(244 250 247 / 0.96)),
-    #fff;
-  box-shadow: 0 12px 26px rgb(26 59 41 / 0.08);
-}
-
-.metric-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 5px;
-  background: var(--brand-primary);
-}
-
-.metric-card::after {
-  content: "";
-  position: absolute;
-  right: -34px;
-  bottom: -42px;
-  width: 104px;
-  height: 104px;
-  border-radius: 999px;
-  background: rgb(110 193 228 / 0.18);
-  pointer-events: none;
-}
-
-.metric-card span {
-  position: relative;
-  z-index: 1;
-  color: var(--brand-secondary);
-  font-size: 0.73rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.metric-card strong {
-  position: relative;
-  z-index: 1;
-  overflow-wrap: anywhere;
-  color: var(--brand-dark);
-  font-family: "Roboto Slab", Georgia, serif;
-  font-size: clamp(1.36rem, 2.2vw, 2rem);
-  font-weight: 700;
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums;
-}
-
-.metric-card[data-tone="positive"]::before {
-  background: var(--brand-accent);
-}
-
-.metric-card[data-tone="positive"]::after {
-  background: rgb(97 206 112 / 0.18);
-}
-
-.metric-card[data-tone="positive"] strong {
-  color: var(--leaf);
-}
-
-.metric-card[data-tone="negative"]::before {
-  background: var(--danger);
-}
-
-.metric-card[data-tone="negative"]::after {
-  background: rgb(163 61 52 / 0.13);
-}
-
-.metric-card[data-tone="negative"] strong {
-  color: var(--danger);
 }
 
 .panel {
@@ -343,7 +251,7 @@ h1 {
 
 .methodology-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -399,6 +307,26 @@ h1 {
   line-height: 1.55;
 }
 
+.methodology-card-formulas {
+  display: grid;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.methodology-card-formulas code {
+  display: block;
+  padding: 8px 9px;
+  border: 1px solid rgb(0 155 110 / 0.18);
+  border-radius: 7px;
+  background: #f1fbf5;
+  color: var(--brand-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: normal;
+}
+
 .climate-method-panel {
   background:
     linear-gradient(90deg, rgb(110 193 228 / 0.1), transparent 58%),
@@ -407,35 +335,6 @@ h1 {
 
 .climate-method-card {
   min-height: 128px;
-}
-
-.methodology-formula-block {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid rgb(0 155 110 / 0.2);
-  border-radius: 8px;
-  background: linear-gradient(135deg, #f1fbf5, #fff);
-}
-
-.methodology-formula-block code {
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 10px;
-  border: 1px solid rgb(26 59 41 / 0.1);
-  border-radius: 7px;
-  background: #fff;
-  color: var(--brand-dark);
-  text-align: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.84rem;
-  font-weight: 800;
-  line-height: 1.35;
-  white-space: normal;
 }
 
 .search-row,
@@ -1303,10 +1202,8 @@ td.input-cell input {
     padding: 14px;
   }
 
-  .header-metrics,
   .methodology-grid,
   .climate-method-grid,
-  .methodology-formula-block,
   .reference-grid,
   .variable-grid,
   .climate-factor-controls,

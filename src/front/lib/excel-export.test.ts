@@ -79,6 +79,10 @@ describe("Excel export", () => {
     expect(chartSheet?.getCell("A13").value).toBe("Dezembro");
     expect(referencesSheet?.getCell("A1").value).toBe("Fonte");
     expect(referencesSheet?.getCell("A2").value).toBe("Thornthwaite, 1948");
+    expect(JSON.stringify(referencesSheet?.model)).toContain(
+      "https://doi.org/10.2307/210739",
+    );
+    expect(JSON.stringify(referencesSheet?.model)).not.toContain("jstor.org");
     expect(referencesSheet?.getCell("A3").value).toBe(
       "Open-Meteo Historical Weather API",
     );

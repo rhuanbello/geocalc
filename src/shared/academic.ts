@@ -7,11 +7,13 @@ export type ReferenceSource = {
 export type MethodologySection = {
   title: string;
   body: string;
+  formulas?: string[];
 };
 
 export type ClimatePeriodPresetId =
   | "1940-1970"
-  | "1971-2000"
+  | "1961-1990"
+  | "1981-2010"
   | "1991-2020"
   | "custom";
 
@@ -33,7 +35,7 @@ export const REFERENCE_SOURCES: ReferenceSource[] = [
     label: "Thornthwaite, 1948",
     description:
       "Referência metodológica da fórmula de evapotranspiração potencial usada no cálculo do balanço hídrico: Geographical Review, London, v.38, p.55-94.",
-    href: "https://www.jstor.org/stable/210739?origin=crossref",
+    href: "https://doi.org/10.2307/210739",
   },
   {
     label: "Open-Meteo Historical Weather API",
@@ -69,54 +71,58 @@ export const WATER_BALANCE_METHODOLOGY: MethodologySection[] = [
     title: "Entrada e saída de água",
     body:
       "Na formulação usada aqui, a entrada é a precipitação mensal (P), medida em milímetros. A saída é a evapotranspiração potencial (Etp), que representa a demanda de perda de água para a atmosfera.",
+    formulas: ["BH = P - Etp"],
   },
   {
     title: "Por que estimar a Etp",
     body:
       "Como muitas estações meteorológicas não medem a Etp diretamente em campo, o cálculo usa a fórmula de Thornthwaite para estimar a Etp mensal a partir da temperatura média mensal.",
+    formulas: ["Etp mensal = 16 * (10t / I)^a"],
+  },
+  {
+    title: "Índices de Thornthwaite",
+    body:
+      "O índice calorimétrico mensal (i) é calculado para cada mês a partir da temperatura. A soma desses índices forma o índice anual (I), usado para calcular o expoente a da fórmula.",
+    formulas: [
+      "i = (t / 5)^1,514",
+      "I = soma(i)",
+      "a = (675 * 10^-9 * I^3) - (771 * 10^-7 * I^2) + (0,01792 * I) + 0,49239",
+    ],
   },
   {
     title: "Correção por latitude",
     body:
       "A equação de Thornthwaite foi proposta para condições padronizadas de Equador, mês de 30 dias e 12 horas de insolação diária. Por isso, a Etp é multiplicada por um fator de correção associado ao hemisfério, ao mês e à latitude de referência.",
+    formulas: ["Etp corrigida = Etp * FC", "BH = P - Etp corrigida"],
   },
   {
     title: "Superávit e déficit",
     body:
       "Quando o resultado mensal é positivo, há superávit hídrico (SH). Quando é negativo, há déficit hídrico (DH), indicando que a demanda de evapotranspiração superou a entrada de água pela chuva.",
+    formulas: ["SH = valores positivos de BH", "DH = valores negativos de BH"],
   },
-  {
-    title: "Vazão como aplicação futura",
-    body:
-      "O superávit hídrico anual também pode apoiar estimativas de vazão fluvial, tema importante em estudos de contaminação de águas. Esse desdobramento fica fora da calculadora atual e será tratado em etapa posterior.",
-  },
-];
-
-export const WATER_BALANCE_FORMULAS = [
-  "BH = P - Etp",
-  "Etp mensal = 16 * (10t / I)^a",
-  "i = (t / 5)^1,514",
-  "I = soma(i)",
-  "a = (675 * 10^-9 * I^3) - (771 * 10^-7 * I^2) + (0,01792 * I) + 0,49239",
-  "Etp corrigida = Etp * FC",
-  "BH = P - Etp corrigida",
 ];
 
 export const CLIMATE_IMPORT_METHODOLOGY: MethodologySection[] = [
   {
-    title: "Fonte climática",
+    title: "Fonte de chuva e temperatura",
     body:
-      "Ao importar dados climáticos, o GeoCalc consulta a Open-Meteo usando o conjunto ERA5. Essa base reúne estimativas históricas consistentes de chuva e temperatura para longos períodos.",
+      "Ao importar dados climáticos, o GeoCalc consulta a Open-Meteo com o conjunto ERA5. A tabela recebe estimativas históricas de precipitação e temperatura para o local e período escolhidos.",
   },
   {
-    title: "De dias para meses",
+    title: "Precipitação mensal",
     body:
-      "A fonte climática trabalha dia a dia. Para chegar ao mês, o GeoCalc soma a chuva diária de cada mês e calcula a média das temperaturas médias diárias daquele mesmo mês.",
+      "A precipitação vem dia a dia. Para representar um mês, o GeoCalc soma todos os valores diários de chuva daquele mês, chegando à precipitação mensal acumulada.",
   },
   {
-    title: "Média do período",
+    title: "Temperatura mensal",
     body:
-      "Depois, o sistema compara meses iguais ao longo dos anos escolhidos. Janeiro é comparado com janeiros, fevereiro com fevereiros, e assim por diante, formando uma média mensal do período de referência.",
+      "A temperatura também vem dia a dia. Para representar um mês, o GeoCalc calcula a média das temperaturas médias diárias registradas naquele mês.",
+  },
+  {
+    title: "Normal do período",
+    body:
+      "Depois de obter os meses de cada ano, o GeoCalc compara meses iguais no período selecionado: janeiros com janeiros, fevereiros com fevereiros, e assim sucessivamente.",
   },
   {
     title: "Meses incompletos",
@@ -128,7 +134,8 @@ export const CLIMATE_IMPORT_METHODOLOGY: MethodologySection[] = [
 export function getClimatePeriodPresets(): ClimatePeriodPreset[] {
   return [
     { id: "1940-1970", label: "1940-1970", startYear: 1940, endYear: 1970 },
-    { id: "1971-2000", label: "1971-2000", startYear: 1971, endYear: 2000 },
+    { id: "1961-1990", label: "1961-1990", startYear: 1961, endYear: 1990 },
+    { id: "1981-2010", label: "1981-2010", startYear: 1981, endYear: 2010 },
     { id: "1991-2020", label: "1991-2020", startYear: 1991, endYear: 2020 },
     { id: "custom", label: "Personalizado", startYear: 1990, endYear: "current" },
   ];

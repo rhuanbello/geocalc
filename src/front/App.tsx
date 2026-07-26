@@ -45,7 +45,6 @@ import { formatIsoDatePtBr } from "$/date-format";
 import {
   CLIMATE_IMPORT_METHODOLOGY,
   REFERENCE_SOURCES,
-  WATER_BALANCE_FORMULAS,
   WATER_BALANCE_METHODOLOGY,
   getClimatePeriodPresets,
   type ClimatePeriodPresetId,
@@ -373,7 +372,7 @@ export function App() {
       <AppSidebar />
 
       <main className="app-shell">
-        <ModuleHeader result={waterBalance} />
+        <ModuleHeader />
 
         <MethodologyPanel />
 
@@ -450,11 +449,7 @@ function AppSidebar() {
   );
 }
 
-function ModuleHeader({
-  result,
-}: {
-  result: ReturnType<typeof calculateWaterBalance>;
-}) {
+function ModuleHeader() {
   return (
     <header className="module-header" id="balanco-hidrico">
       <div>
@@ -464,22 +459,6 @@ function ModuleHeader({
           Selecione um local, preencha dados climáticos e acompanhe como chuva,
           temperatura, fator mensal e ETP formam o saldo hídrico.
         </p>
-      </div>
-
-      <div className="header-metrics" aria-label="Resumo anual">
-        <MetricCard
-          label="P anual"
-          value={`${formatNumber(result.annual.precipitationTotal)} mm`}
-        />
-        <MetricCard
-          label="ETP corr."
-          value={`${formatNumber(result.annual.correctedEtpTotal)} mm`}
-        />
-        <MetricCard
-          label="BH anual"
-          value={`${formatNumber(result.annual.balanceTotal)} mm`}
-          tone={(result.annual.balanceTotal ?? 0) < 0 ? "negative" : "positive"}
-        />
       </div>
     </header>
   );
@@ -498,12 +477,14 @@ function MethodologyPanel() {
           <article key={section.title} className="methodology-card">
             <h3>{section.title}</h3>
             <p>{section.body}</p>
+            {section.formulas?.length ? (
+              <div className="methodology-card-formulas">
+                {section.formulas.map((formula) => (
+                  <code key={formula}>{formula}</code>
+                ))}
+              </div>
+            ) : null}
           </article>
-        ))}
-      </div>
-      <div className="methodology-formula-block" aria-label="Fórmulas do balanço hídrico">
-        {WATER_BALANCE_FORMULAS.map((formula) => (
-          <code key={formula}>{formula}</code>
         ))}
       </div>
     </section>
@@ -515,8 +496,8 @@ function ClimateMethodPanel() {
     <section className="panel climate-method-panel">
       <PanelTitle
         icon={<CloudSun className="size-4" />}
-        title="Como os dados climáticos são calculados"
-        description="O caminho entre os dados diários da fonte climática e os valores mensais usados na tabela."
+        title="Fontes de dados da obtenção da precipitação e temperatura"
+        description="Como chuva e temperatura chegam à tabela mensal usada no balanço hídrico."
       />
       <div className="climate-method-grid">
         {CLIMATE_IMPORT_METHODOLOGY.map((section) => (
@@ -1029,23 +1010,6 @@ function VariableGuide() {
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  tone?: "neutral" | "positive" | "negative";
-}) {
-  return (
-    <div className="metric-card" data-tone={tone}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
 function PanelTitle({
   icon,
   title,
@@ -1128,7 +1092,7 @@ function buildReport(params: {
     "i = (T / 5)^1,514; I = soma(i); a = 675e-9 * I^3 - 771e-7 * I^2 + 0,01792 * I + 0,49239; ETP = 16 * (10 * T / I)^a; ETP corrigida = ETP * fator; BH = P - ETP corrigida.",
     "",
     "Referências e fontes:",
-    "- Referência metodológica: Thornthwaite, 1948: https://www.jstor.org/stable/210739?origin=crossref",
+    "- Referência metodológica: Thornthwaite, 1948: https://doi.org/10.2307/210739",
     "- Open-Meteo Historical Weather API: https://open-meteo.com/en/docs/historical-weather-api",
     "- OpenStreetMap: https://www.openstreetmap.org/copyright",
     "- Leaflet: https://leafletjs.com/",

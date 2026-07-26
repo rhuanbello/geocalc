@@ -54,7 +54,7 @@ mock.module("recharts", () => {
   };
 });
 
-const { cleanup, fireEvent, render, screen, waitFor, within } = await import(
+const { cleanup, fireEvent, render, screen, waitFor } = await import(
   "@testing-library/react"
 );
 const userEvent = (await import("@testing-library/user-event")).default;
@@ -138,19 +138,26 @@ describe("App spreadsheet parity", () => {
 
   test("renderiza metodologia, fontes e presets climáticos", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    const { container } = render(<App />);
 
+    expect(container.querySelector(".header-metrics")).toBeNull();
     expect(screen.getByText("Conceitos básicos e metodologia")).toBeTruthy();
     expect(screen.getByText("O que é o balanço hídrico")).toBeTruthy();
-    expect(screen.getByText("Vazão como aplicação futura")).toBeTruthy();
-    expect(screen.getByText(/BH = P - Etp corrigida/)).toBeTruthy();
-    expect(screen.getByText(/i = \(t \/ 5\)\^1,514/)).toBeTruthy();
+    expect(screen.getByText("Entrada e saída de água")).toBeTruthy();
+    expect(screen.getAllByText("BH = P - Etp").length).toBeGreaterThan(0);
+    expect(screen.getByText("Índices de Thornthwaite")).toBeTruthy();
+    expect(screen.queryByText("Vazão como aplicação futura")).toBeNull();
+    expect(container.querySelector(".methodology-formula-block")).toBeNull();
+    expect(screen.getAllByText("BH = P - Etp corrigida").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("i = (t / 5)^1,514").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/I = soma\(i\)/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/675 \* 10\^-9/)).toBeTruthy();
-    expect(screen.getByText(/Etp corrigida = Etp \* FC/)).toBeTruthy();
+    expect(screen.getAllByText(/675 \* 10\^-9/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Etp corrigida = Etp * FC").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Thornthwaite/).length).toBeGreaterThan(0);
-    expect(screen.getByText("Como os dados climáticos são calculados")).toBeTruthy();
-    expect(screen.getByText("De dias para meses")).toBeTruthy();
+    expect(screen.getByText("Fontes de dados da obtenção da precipitação e temperatura")).toBeTruthy();
+    expect(screen.getByText("Precipitação mensal")).toBeTruthy();
+    expect(screen.getByText("Temperatura mensal")).toBeTruthy();
+    expect(screen.getByText("Normal do período")).toBeTruthy();
     expect(screen.getByText("Meses incompletos")).toBeTruthy();
     expect(screen.getAllByText(/dados diários/).length).toBeGreaterThan(0);
     expect(screen.getByText("Referências e fontes")).toBeTruthy();
@@ -159,7 +166,7 @@ describe("App spreadsheet parity", () => {
     expect(screen.getByRole("link", { name: "OpenStreetMap" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Thornthwaite, 1948" })).toHaveProperty(
       "href",
-      "https://www.jstor.org/stable/210739?origin=crossref",
+      "https://doi.org/10.2307/210739",
     );
     expect(screen.queryByText(/Edison/)).toBeNull();
     expect(screen.queryByText(/apostila/i)).toBeNull();
@@ -167,14 +174,24 @@ describe("App spreadsheet parity", () => {
     expect(screen.queryByText("Leitura rápida")).toBeNull();
     expect(screen.queryByText("Fatores de correção")).toBeNull();
     expect(screen.queryByText("2001-2026")).toBeNull();
+    expect(screen.queryByText("1971-2000")).toBeNull();
     expect(screen.queryByLabelText("Início")).toBeNull();
     expect(screen.queryByLabelText("Fim")).toBeNull();
     expect(screen.getByRole("combobox", { name: "Período de referência" }).textContent).toContain("1991-2020");
 
+    await chooseCombobox(user, "Período de referência", "1961-1990");
+    expect(screen.getByRole("combobox", { name: "Período de referência" }).textContent).toContain("1961-1990");
+
+    await chooseCombobox(user, "Período de referência", "1981-2010");
+    expect(screen.getByRole("combobox", { name: "Período de referência" }).textContent).toContain("1981-2010");
+
+    await chooseCombobox(user, "Período de referência", "1940-1970");
+    expect(screen.getByRole("combobox", { name: "Período de referência" }).textContent).toContain("1940-1970");
+
     await chooseCombobox(user, "Período de referência", "Personalizado");
 
-    expect((screen.getByLabelText("Início") as HTMLInputElement).value).toBe("1991");
-    expect((screen.getByLabelText("Fim") as HTMLInputElement).value).toBe("2020");
+    expect((screen.getByLabelText("Início") as HTMLInputElement).value).toBe("1940");
+    expect((screen.getByLabelText("Fim") as HTMLInputElement).value).toBe("1970");
   });
 
   test("mantem estados decimais intermediarios nos campos de entrada", () => {
@@ -210,9 +227,7 @@ describe("App spreadsheet parity", () => {
       });
     }
 
-    expect(metricText(container, "P anual")).toBe("1.340,0 mm");
-    expect(metricText(container, "ETP corr.")).toBe("941,9 mm");
-    expect(metricText(container, "BH anual")).toBe("398,1 mm");
+    expect(container.querySelector(".header-metrics")).toBeNull();
 
     expect(rowText(container, "Janeiro")).toContain("1,19");
     expect(rowText(container, "Janeiro")).toContain("11,23");
@@ -241,6 +256,8 @@ describe("App spreadsheet parity", () => {
     expect(report.value).toContain("Expoente a: 2,097");
     expect(report.value).toContain("Maior déficit: Janeiro (-27,5 mm)");
     expect(report.value).toContain("Maior superávit: Junho (105,0 mm)");
+    expect(report.value).toContain("https://doi.org/10.2307/210739");
+    expect(report.value).not.toContain("jstor.org");
     expect(screen.getByText("Entenda as variáveis")).toBeTruthy();
     expect(screen.getAllByText("SH").length).toBeGreaterThan(0);
     expect(screen.getAllByText("DH").length).toBeGreaterThan(0);
@@ -298,17 +315,6 @@ describe("App spreadsheet parity", () => {
     expect(screen.getByRole("button", { name: /Exportar Excel/i })).toBeTruthy();
   });
 });
-
-function metricText(container: HTMLElement, label: string): string {
-  const cards = Array.from(container.querySelectorAll(".metric-card"));
-  const card = cards.find((item) => item.textContent?.includes(label));
-
-  if (!card) {
-    throw new Error(`Metric not found: ${label}`);
-  }
-
-  return within(card as HTMLElement).getByText(/mm|-$/).textContent ?? "";
-}
 
 function rowText(container: HTMLElement, month: string): string {
   const rows = Array.from(container.querySelectorAll("tbody tr"));
