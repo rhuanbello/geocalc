@@ -44,6 +44,12 @@ export const REFERENCE_SOURCES: ReferenceSource[] = [
     href: "https://open-meteo.com/en/docs/historical-weather-api",
   },
   {
+    label: "INMET Normais Climatológicas do Brasil",
+    description:
+      "Fonte observacional por estação meteorológica usada quando o usuário seleciona uma estação INMET completa para 1991-2020.",
+    href: "https://portal.inmet.gov.br/normais",
+  },
+  {
     label: "OpenStreetMap",
     description: "Base cartográfica colaborativa usada na seleção visual do local.",
     href: "https://www.openstreetmap.org/copyright",
@@ -105,9 +111,14 @@ export const WATER_BALANCE_METHODOLOGY: MethodologySection[] = [
 
 export const CLIMATE_IMPORT_METHODOLOGY: MethodologySection[] = [
   {
-    title: "Fonte de chuva e temperatura",
+    title: "Fontes de chuva e temperatura",
     body:
-      "Ao importar dados climáticos, o GeoCalc consulta a Open-Meteo com o conjunto ERA5. A tabela recebe estimativas históricas de precipitação e temperatura para o local e período escolhidos.",
+      "O GeoCalc pode usar estimativas por coordenada da Open-Meteo/ERA5 ou dados observacionais por estação das Normais Climatológicas do INMET, quando disponíveis.",
+  },
+  {
+    title: "INMET por estação",
+    body:
+      "Quando uma estação INMET é selecionada, a tabela recebe diretamente os valores mensais de precipitação e temperatura da normal climatológica 1991-2020 daquela estação.",
   },
   {
     title: "Precipitação mensal",

@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { calculateWaterBalance, type MonthlyInput } from "$/water-balance";
+import {
+  getInmetStationByCode,
+  inmetStationToMonthlyInputs,
+} from "$/inmet-normals";
 import { createWaterBalanceWorkbook } from "./excel-export";
 
 const spreadsheetInputs: MonthlyInput[] = [
@@ -38,7 +42,7 @@ describe("Excel export", () => {
       startYear: 1991,
       endYear: 2020,
       effectiveEndDate: "2020-12-31",
-      sourceState: "imported",
+      sourceState: "open-meteo",
       climateModel: "ERA5",
     });
 
@@ -86,8 +90,52 @@ describe("Excel export", () => {
     expect(referencesSheet?.getCell("A3").value).toBe(
       "Open-Meteo Historical Weather API",
     );
-    expect(referencesSheet?.getCell("A6").value).toBe("Nominatim");
+    expect(referencesSheet?.getCell("A4").value).toBe(
+      "INMET Normais Climatológicas do Brasil",
+    );
+    expect(referencesSheet?.getCell("A7").value).toBe("Nominatim");
     expect(JSON.stringify(workbook.model)).not.toContain("Edison");
     expect(JSON.stringify(workbook.model)).not.toContain("apostila");
+  });
+
+  test("exports INMET source without Open-Meteo metadata", () => {
+    const station = getInmetStationByCode("83377");
+    if (!station) {
+      throw new Error("Station not found");
+    }
+
+    const result = calculateWaterBalance(inmetStationToMonthlyInputs(station), {
+      hemisphere: "south",
+      latitude: 20,
+    });
+    const workbook = createWaterBalanceWorkbook({
+      result,
+      location: {
+        id: Number(station.code),
+        name: station.name,
+        admin1: station.uf,
+        country: "Brasil",
+        latitude: station.latitude,
+        longitude: station.longitude,
+        timezone: "auto",
+      },
+      point: { latitude: station.latitude, longitude: station.longitude },
+      startYear: 1991,
+      endYear: 2020,
+      effectiveEndDate: "2020-12-31",
+      sourceState: "inmet",
+      selectedInmetStation: station,
+      climateModel: "ERA5",
+    });
+
+    const mainSheet = workbook.getWorksheet("Balanço hídrico");
+    expect(mainSheet?.getCell("C8").value).toBe(
+      "INMET Normais Climatológicas do Brasil",
+    );
+    expect(mainSheet?.getCell("A9").value).toBe("Estação INMET");
+    expect(mainSheet?.getCell("C9").value).toBe("83377 - BRASILIA, DF");
+    expect(mainSheet?.getCell("A45").value).toBe("INMET");
+    expect(mainSheet?.getCell("B45").value).toContain("Normais Climatológicas");
+    expect(mainSheet?.getCell("B45").value).not.toContain("série diária");
   });
 });

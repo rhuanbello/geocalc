@@ -7,8 +7,9 @@ import type {
 } from "$/water-balance";
 import { formatIsoDatePtBr } from "$/date-format";
 import { REFERENCE_SOURCES } from "$/academic";
+import { inmetStationLabel, type InmetNormalStation } from "$/inmet-normals";
 
-type ExportSourceState = "manual" | "imported";
+type ExportSourceState = "manual" | "open-meteo" | "inmet";
 
 export type WaterBalanceWorkbookParams = {
   result: WaterBalanceResult;
@@ -18,6 +19,7 @@ export type WaterBalanceWorkbookParams = {
   endYear: number;
   effectiveEndDate: string;
   sourceState: ExportSourceState;
+  selectedInmetStation?: InmetNormalStation | null;
   climateModel?: string;
 };
 
@@ -123,14 +125,20 @@ function buildMainSheet(
   sheet.mergeCells("A8:B8");
   sheet.getCell("A8").value = "Fonte dos dados";
   sheet.getCell("C8").value =
-    params.sourceState === "imported"
+    params.sourceState === "open-meteo"
       ? "Open-Meteo Historical Weather API"
-      : "Entrada manual";
+      : params.sourceState === "inmet"
+        ? "INMET Normais Climatológicas do Brasil"
+        : "Entrada manual";
   sheet.mergeCells("C8:I8");
 
   sheet.mergeCells("A9:B9");
-  sheet.getCell("A9").value = "Modelo";
-  sheet.getCell("C9").value = params.climateModel ?? CLIMATE_MODEL_LABEL;
+  sheet.getCell("A9").value =
+    params.sourceState === "inmet" ? "Estação INMET" : "Modelo";
+  sheet.getCell("C9").value =
+    params.sourceState === "inmet" && params.selectedInmetStation
+      ? inmetStationLabel(params.selectedInmetStation)
+      : params.climateModel ?? CLIMATE_MODEL_LABEL;
   sheet.mergeCells("C9:I9");
 
   sheet.mergeCells("A10:B10");
@@ -197,6 +205,16 @@ function buildMainSheet(
   sheet.getCell(`A${legendStart}`).style = sectionStyle();
   sheet.mergeCells(`A${legendStart}:I${legendStart}`);
 
+  const sourceLegend =
+    params.sourceState === "inmet"
+      ? [
+          "INMET",
+          "Dados mensais provenientes das Normais Climatológicas do Brasil 1991-2020 para a estação selecionada. A tabela continua editável após o preenchimento.",
+        ]
+      : [
+          "Open-Meteo",
+          `Quando os dados são importados, a API fornece série diária do modelo ${params.climateModel ?? CLIMATE_MODEL_LABEL}; o GeoCalc soma a precipitação diária por mês, calcula a média das temperaturas médias diárias e faz a média dos mesmos meses em anos válidos.`,
+        ];
   const legendRows = [
     ["P", "Precipitação mensal acumulada, em milímetros."],
     ["T", "Temperatura média mensal, em graus Celsius."],
@@ -209,10 +227,7 @@ function buildMainSheet(
     ["BH", "Balanço hídrico mensal: BH = P - ETP corrigida."],
     ["SH", "Superávit hídrico: valores positivos de BH."],
     ["DH", "Déficit hídrico: valores negativos de BH."],
-    [
-      "Open-Meteo",
-      `Quando os dados são importados, a API fornece série diária do modelo ${params.climateModel ?? CLIMATE_MODEL_LABEL}; o GeoCalc soma a precipitação diária por mês, calcula a média das temperaturas médias diárias e faz a média dos mesmos meses em anos válidos.`,
-    ],
+    sourceLegend,
   ];
 
   legendRows.forEach(([term, description], index) => {

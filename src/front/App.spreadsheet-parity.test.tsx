@@ -7,16 +7,30 @@ GlobalRegistrator.register();
 mock.module("@/components/MapPicker", () => ({
   MapPicker: ({
     onPointChange,
+    stations,
+    onStationSelect,
   }: {
     onPointChange: (point: { latitude: number; longitude: number }) => void;
+    stations?: Array<{ latitude: number; longitude: number }>;
+    onStationSelect?: (station: never) => void;
   }) => (
-    <button
-      data-testid="map-picker"
-      type="button"
-      onClick={() => onPointChange({ latitude: -15.7801, longitude: -47.9292 })}
-    >
-      Selecionar ponto no mapa
-    </button>
+    <div>
+      <button
+        data-testid="map-picker"
+        type="button"
+        onClick={() => onPointChange({ latitude: -15.7801, longitude: -47.9292 })}
+      >
+        Selecionar ponto no mapa
+      </button>
+      {stations?.length ? (
+        <button
+          type="button"
+          onClick={() => onStationSelect?.(stations[0] as never)}
+        >
+          Selecionar estação INMET no mapa
+        </button>
+      ) : null}
+    </div>
   ),
 }));
 
@@ -162,6 +176,7 @@ describe("App spreadsheet parity", () => {
     expect(screen.getAllByText(/dados diários/).length).toBeGreaterThan(0);
     expect(screen.getByText("Referências e fontes")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open-Meteo Historical Weather API" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "INMET Normais Climatológicas do Brasil" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Nominatim" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "OpenStreetMap" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Thornthwaite, 1948" })).toHaveProperty(
@@ -245,9 +260,7 @@ describe("App spreadsheet parity", () => {
       /Síntese dos resultados/,
     ) as HTMLTextAreaElement;
     expect(report.value).toContain("Precipitação total: 1.340,0 mm");
-    expect(report.value).toContain("Data final efetiva da importação: 31/12/2020");
     expect(report.value).toContain("Base técnica e metodológica preparada para o GeoCalc.");
-    expect(report.value).toContain("Modelo: ERA5");
     expect(report.value).not.toContain("Edison");
     expect(report.value).not.toContain("apostila");
     expect(report.value).toContain("ETP corrigida total: 941,9 mm");
@@ -282,6 +295,30 @@ describe("App spreadsheet parity", () => {
     expect(screen.getByText("Latitude")).toBeTruthy();
     expect(screen.getByText("Longitude")).toBeTruthy();
     expect(screen.getAllByText("Latitude de fator").length).toBeGreaterThan(0);
+  });
+
+  test("seleciona INMET por estação e preenche a tabela", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByText("INMET 1991-2020"));
+
+    expect(screen.queryByRole("button", { name: /Importar dados climáticos/i })).toBeNull();
+    expect(screen.getAllByText("Selecione uma estação INMET no mapa ou na busca.").length).toBeGreaterThan(0);
+    expect(screen.getByRole("combobox", { name: "Estação INMET" })).toBeTruthy();
+
+    await user.click(screen.getByText("Selecionar estação INMET no mapa"));
+
+    await waitFor(() => {
+      expect((screen.getByLabelText("Precipitação de Janeiro") as HTMLInputElement).value).not.toBe("");
+    });
+
+    const report = screen.getByDisplayValue(
+      /Síntese dos resultados/,
+    ) as HTMLTextAreaElement;
+    expect(report.value).toContain("Fonte dos dados: INMET Normais Climatológicas do Brasil 1991-2020");
+    expect(report.value).toContain("Estação INMET:");
+    expect(report.value).not.toContain("Open-Meteo Historical Weather API");
   });
 
   test("simplifica a sidebar", () => {
