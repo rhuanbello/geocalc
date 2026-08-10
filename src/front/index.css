@@ -79,23 +79,14 @@ button:disabled {
   color: #f8f3e9;
 }
 
-.institution-brand {
+.sidebar-brand {
   display: grid;
-  gap: 12px;
+  gap: 4px;
   padding-bottom: 18px;
   border-bottom: 1px solid rgb(248 243 233 / 0.16);
 }
 
-.institution-brand img {
-  width: 174px;
-  max-width: 100%;
-  height: auto;
-  padding: 10px;
-  border-radius: 7px;
-  background: #fff;
-}
-
-.institution-brand strong {
+.sidebar-brand strong {
   display: block;
   font-size: 1.28rem;
   line-height: 1.1;
@@ -108,7 +99,7 @@ button:disabled {
   letter-spacing: 0;
 }
 
-.institution-brand span {
+.sidebar-brand span {
   color: rgb(248 243 233 / 0.72);
   font-size: 0.84rem;
   line-height: 1.45;
@@ -169,11 +160,81 @@ button:disabled {
 }
 
 .module-header {
-  padding: 18px;
-  border: 1px solid var(--line);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 214px minmax(0, 1fr) 74px;
+  min-height: 150px;
+  overflow: hidden;
+  border: 1px solid #123322;
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.9);
-  box-shadow: var(--shadow);
+  background: var(--brand-dark);
+  box-shadow: 0 14px 32px rgb(26 59 41 / 0.18);
+  color: #f8f3e9;
+}
+
+.module-header::before,
+.module-header::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+}
+
+.module-header::before {
+  right: 24px;
+  bottom: -82px;
+  width: 192px;
+  height: 192px;
+  border: 1px solid rgb(97 206 112 / 0.24);
+  transform: rotate(45deg);
+}
+
+.module-header::after {
+  right: 160px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: rgb(248 243 233 / 0.14);
+}
+
+.module-header-institution {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 18px 20px;
+  border-right: 1px solid rgb(248 243 233 / 0.16);
+  background: rgb(0 0 0 / 0.09);
+}
+
+.module-header-institution img {
+  width: min(172px, 100%);
+  padding: 6px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.module-header-institution span {
+  max-width: 184px;
+  color: rgb(248 243 233 / 0.72);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.module-header-content {
+  align-self: center;
+  padding: 16px 24px;
+}
+
+.module-kicker {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--brand-accent);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .eyebrow {
@@ -193,11 +254,46 @@ h1 {
   letter-spacing: 0;
 }
 
+.module-header h1 {
+  color: #fffdf8;
+  font-size: clamp(1.8rem, 2.6vw, 2.75rem);
+}
+
+.module-header h1 span {
+  color: #aee5b4;
+}
+
 .module-header p {
   max-width: 760px;
-  margin: 10px 0 0;
-  color: var(--muted);
+  margin: 5px 0 0;
+  font-size: 0.88rem;
+  color: rgb(248 243 233 / 0.76);
   line-height: 1.55;
+}
+
+.module-header-index {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  border-left: 1px solid rgb(248 243 233 / 0.16);
+  background: rgb(0 0 0 / 0.08);
+}
+
+.module-header-index span,
+.module-header-index small {
+  color: rgb(248 243 233 / 0.66);
+  font-size: 0.67rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.module-header-index strong {
+  color: var(--brand-accent);
+  font-family: "Roboto Slab", Georgia, serif;
+  font-size: 2rem;
+  line-height: 1;
 }
 
 .panel {
@@ -251,7 +347,7 @@ h1 {
 
 .methodology-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -280,6 +376,33 @@ h1 {
   background: rgb(255 255 255 / 0.92);
 }
 
+.methodology-card {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.methodology-card.is-thornthwaite-indices {
+  grid-column: 1 / -1;
+  min-height: 0;
+  padding: 12px 14px;
+}
+
+.methodology-card.is-thornthwaite-indices .methodology-card-formulas {
+  grid-template-columns: minmax(80px, 0.5fr) minmax(100px, 0.5fr) minmax(0, 2fr);
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.methodology-card.is-thornthwaite-indices .formula {
+  align-content: center;
+  min-height: 44px;
+}
+
+.methodology-card.is-half-width {
+  grid-column: span 3;
+}
+
 .methodology-card h3,
 .climate-method-card h3,
 .reference-card strong,
@@ -305,26 +428,78 @@ h1 {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.55;
+  white-space: pre-line;
 }
 
-.methodology-card-formulas {
+.methodology-card .methodology-card-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 7px;
+  margin: -1px 0 10px;
+  padding: 7px 9px;
+  border-left: 3px solid var(--brand-green);
+  border-radius: 0 6px 6px 0;
+  background: rgb(0 155 110 / 0.08);
+  color: var(--brand-dark);
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.methodology-card .methodology-card-note strong {
+  flex: 0 0 auto;
+  color: var(--brand-green);
+  font-size: 0.72rem;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.methodology-card .methodology-card-note span {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.methodology-card-formulas,
+.climate-method-card-formulas {
   display: grid;
   gap: 6px;
   margin-top: 11px;
 }
 
-.methodology-card-formulas code {
+.methodology-card-formulas {
+  margin-top: auto;
+  padding-top: 11px;
+}
+
+.methodology-card-formulas > .formula,
+.climate-method-card-formulas > .formula {
   display: block;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
   padding: 8px 9px;
   border: 1px solid rgb(0 155 110 / 0.18);
   border-radius: 7px;
   background: #f1fbf5;
   color: var(--brand-dark);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
-  font-weight: 800;
   line-height: 1.35;
-  white-space: normal;
+}
+
+.methodology-card-formulas > .formula .katex-display,
+.climate-method-card-formulas > .formula .katex-display {
+  margin: 0;
+  text-align: left;
+}
+
+.methodology-card-formulas > .formula .katex-display > .katex,
+.climate-method-card-formulas > .formula .katex-display > .katex {
+  min-width: max-content;
+  padding-right: 9px;
+  text-align: left;
+  font-weight: bold;
 }
 
 .climate-method-panel {
@@ -728,9 +903,55 @@ textarea:focus {
 
 .source-toggle {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.source-group {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.source-group.active {
+  border-color: rgb(0 155 110 / 0.45);
+  background: #f2fbf6;
+}
+
+.source-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.source-group-copy {
+  display: grid;
+  gap: 0;
+}
+
+.source-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--brand-dark);
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.source-group-heading small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.source-period-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
 }
 
 .source-toggle button {
@@ -746,6 +967,17 @@ textarea:focus {
   text-align: left;
 }
 
+.source-period-toggle button {
+  min-height: 48px;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+}
+
+.source-period-toggle button > span {
+  justify-content: center;
+}
+
 .source-toggle button.active {
   border-color: rgb(0 155 110 / 0.45);
   background: #e7f6ef;
@@ -759,13 +991,46 @@ textarea:focus {
   flex: 0 0 auto;
 }
 
-.source-toggle span {
+.source-group-title svg {
+  width: 18px;
+  height: 18px;
+  color: var(--brand-green);
+}
+
+.source-toggle button > span {
   display: grid;
   gap: 2px;
   min-width: 0;
   font-size: 0.86rem;
   font-weight: 900;
   line-height: 1.15;
+}
+
+.source-toggle .source-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.source-toggle .source-recommended {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: #087a58;
+  background: #ccefe0;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.source-toggle .source-recommended svg {
+  width: 11px;
+  height: 11px;
+  color: currentColor;
 }
 
 .source-toggle small {
@@ -900,6 +1165,41 @@ textarea:focus {
   height: 100%;
 }
 
+.map-reset-control {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 500;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(26 59 41 / 0.2);
+  border-radius: 6px;
+  background: rgb(255 253 248 / 0.96);
+  box-shadow: 0 2px 8px rgb(26 59 41 / 0.14);
+  color: var(--brand-dark);
+  cursor: pointer;
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.map-reset-control svg {
+  width: 17px;
+  height: 17px;
+}
+
+.map-reset-control:hover {
+  background: #e4f4eb;
+  box-shadow: 0 4px 12px rgb(26 59 41 / 0.2);
+  transform: translateY(-1px);
+}
+
+.map-reset-control:focus-visible {
+  outline: 3px solid rgb(0 155 110 / 0.32);
+  outline-offset: 2px;
+}
+
 .map-hint {
   position: absolute;
   left: 10px;
@@ -913,14 +1213,16 @@ textarea:focus {
   font-weight: 800;
 }
 
-.inmet-station-marker {
-  display: grid;
-  place-items: center;
+.leaflet-marker-icon.inmet-station-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
   background: rgb(26 59 41 / 0.2);
 }
 
 .inmet-station-marker span {
+  flex: 0 0 auto;
   width: 12px;
   height: 12px;
   display: block;
@@ -938,6 +1240,17 @@ textarea:focus {
   width: 16px;
   height: 16px;
   background: var(--brand-dark);
+}
+
+.inmet-station-marker.is-preview {
+  background: rgb(110 193 228 / 0.38);
+}
+
+.inmet-station-marker.is-preview span {
+  width: 16px;
+  height: 16px;
+  background: var(--brand-green);
+  box-shadow: 0 0 0 5px rgb(110 193 228 / 0.18);
 }
 
 .period-grid {
@@ -1063,28 +1376,6 @@ textarea:focus {
   color: var(--water-dark);
   font-weight: 800;
   line-height: 1.4;
-}
-
-.empty-inline {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 11px 12px;
-  border: 1px dashed var(--line);
-  border-radius: 7px;
-  background: #f7fbf9;
-  color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.empty-inline svg {
-  width: 17px;
-  height: 17px;
-  margin-top: 1px;
-  color: var(--brand-green);
-  flex: 0 0 auto;
 }
 
 .notice.error {
@@ -1256,6 +1547,20 @@ td.input-cell input {
   border-color: rgb(255 255 255 / 0.34);
   background: rgb(255 255 255 / 0.94);
   color: var(--brand-dark);
+}
+
+td.input-cell input.input-invalid,
+td.input-cell input.input-invalid:focus {
+  border-color: #bd3b32;
+  background: #fff1ef;
+  color: #8d241d;
+  box-shadow: inset 0 0 0 1px rgb(189 59 50 / 0.25);
+}
+
+.calculation-input-error-tooltip {
+  max-width: 250px;
+  border: 1px solid rgb(189 59 50 / 0.4);
+  background: #7b241c;
 }
 
 .positive {
@@ -1449,15 +1754,9 @@ td.input-cell input {
     align-items: center;
   }
 
-  .institution-brand {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
+  .sidebar-brand {
     border-bottom: 0;
     padding-bottom: 0;
-  }
-
-  .institution-brand img {
-    width: 92px;
   }
 
   .sidebar-nav {
@@ -1466,7 +1765,6 @@ td.input-cell input {
     justify-content: flex-end;
   }
 
-  .module-header,
   .climate-grid {
     grid-template-columns: 1fr;
   }
@@ -1475,6 +1773,15 @@ td.input-cell input {
   .reference-grid,
   .variable-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .methodology-card,
+  .methodology-card.is-half-width {
+    grid-column: span 1;
+  }
+
+  .methodology-card.is-thornthwaite-indices {
+    grid-column: 1 / -1;
   }
 
   .map-frame {
@@ -1501,6 +1808,55 @@ td.input-cell input {
     padding: 14px;
   }
 
+  .module-header {
+    grid-template-columns: 86px minmax(0, 1fr) 54px;
+    min-height: 96px;
+    padding: 0;
+  }
+
+  .module-header-institution {
+    grid-column: auto;
+    display: grid;
+    place-items: center;
+    padding: 10px;
+    border-right: 1px solid rgb(248 243 233 / 0.16);
+    border-bottom: 0;
+  }
+
+  .module-header-institution img {
+    width: 66px;
+    padding: 4px;
+  }
+
+  .module-header-institution span {
+    display: none;
+  }
+
+  .module-header-content {
+    padding: 13px 12px;
+  }
+
+  .module-header h1 {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+
+  .module-header p {
+    display: none;
+  }
+
+  .module-kicker {
+    margin-bottom: 3px;
+    font-size: 0.6rem;
+  }
+
+  .module-header-index {
+    border-left: 1px solid rgb(248 243 233 / 0.16);
+  }
+
+  .module-header::after {
+    right: 98px;
+  }
+
   .methodology-grid,
   .climate-method-grid,
   .reference-grid,
@@ -1509,6 +1865,19 @@ td.input-cell input {
   .climate-factor-controls,
   .coordinate-facts,
   .period-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .methodology-card,
+  .methodology-card.is-half-width {
+    grid-column: auto;
+  }
+
+  .methodology-card.is-thornthwaite-indices {
+    gap: 8px;
+  }
+
+  .methodology-card.is-thornthwaite-indices .methodology-card-formulas {
     grid-template-columns: 1fr;
   }
 

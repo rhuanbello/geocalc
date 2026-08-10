@@ -3,6 +3,7 @@ import "leaflet/dist/leaflet.css";
 import markerIcon2xUrl from "leaflet/dist/images/marker-icon-2x.png";
 import markerIconUrl from "leaflet/dist/images/marker-icon.png";
 import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
+import { Maximize2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { InmetNormalStation } from "$/inmet-normals";
 
@@ -16,6 +17,7 @@ type MapPickerProps = {
   onPointChange: (point: MapPoint) => void;
   stations?: InmetNormalStation[];
   selectedStationCode?: string | null;
+  previewStation?: InmetNormalStation | null;
   onStationSelect?: (station: InmetNormalStation) => void;
 };
 
@@ -24,7 +26,7 @@ const markerIcon = L.icon({
   iconUrl: markerIconUrl,
   shadowUrl: markerShadowUrl,
   iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconAnchor: [13, 50],
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
@@ -43,11 +45,23 @@ const selectedStationIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
+const previewStationIcon = L.divIcon({
+  className: "inmet-station-marker is-preview",
+  html: '<span></span>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+const DEFAULT_MAP_CENTER: L.LatLngExpression = [-14.2, -51.9];
+const DEFAULT_MAP_ZOOM = 4;
+const CONTEXT_ZOOM = 5;
+
 export function MapPicker({
   point,
   onPointChange,
   stations = [],
   selectedStationCode,
+  previewStation,
   onStationSelect,
 }: MapPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +87,7 @@ export function MapPicker({
     const map = L.map(containerRef.current, {
       zoomControl: false,
       worldCopyJump: true,
-    }).setView([-14.2, -51.9], 4);
+    }).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -100,7 +114,13 @@ export function MapPicker({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !point) {
+    if (!map) {
+      return;
+    }
+
+    if (!point) {
+      markerRef.current?.remove();
+      markerRef.current = null;
       return;
     }
 
@@ -116,6 +136,23 @@ export function MapPicker({
 
   useEffect(() => {
     const map = mapRef.current;
+    const focusedStation =
+      previewStation ??
+      stations.find((station) => station.code === selectedStationCode);
+
+    if (!map || !focusedStation) {
+      return;
+    }
+
+    map.setView(
+      [focusedStation.latitude, focusedStation.longitude],
+      7,
+      { animate: true },
+    );
+  }, [stations, selectedStationCode, previewStation]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     const layer = stationLayerRef.current;
     if (!map || !layer) {
       return;
@@ -126,9 +163,11 @@ export function MapPicker({
       const marker = L.marker([station.latitude, station.longitude], {
         bubblingMouseEvents: false,
         icon:
-          station.code === selectedStationCode
-            ? selectedStationIcon
-            : stationIcon,
+          station.code === previewStation?.code
+            ? previewStationIcon
+            : station.code === selectedStationCode
+              ? selectedStationIcon
+              : stationIcon,
         keyboard: true,
         title: `${station.code} - ${station.name}, ${station.uf}`,
       });
@@ -141,11 +180,51 @@ export function MapPicker({
       });
       marker.addTo(layer);
     });
-  }, [stations, selectedStationCode]);
+  }, [stations, selectedStationCode, previewStation]);
+
+  const resetMapView = () => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    if (point) {
+      map.setView([point.latitude, point.longitude], CONTEXT_ZOOM, {
+        animate: true,
+      });
+      return;
+    }
+
+    if (stations.length > 0) {
+      const bounds = L.latLngBounds(
+        stations.map((station) => [station.latitude, station.longitude]),
+      );
+      map.fitBounds(bounds, {
+        animate: true,
+        maxZoom: CONTEXT_ZOOM,
+        padding: [36, 36],
+      });
+      return;
+    }
+
+    map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, { animate: true });
+  };
 
   return (
     <div className="map-frame">
       <div ref={containerRef} className="map-canvas" aria-label="Mapa" />
+      <button
+        className="map-reset-control"
+        type="button"
+        aria-label="Reenquadrar mapa"
+        title="Reenquadrar mapa"
+        onClick={(event) => {
+          event.stopPropagation();
+          resetMapView();
+        }}
+      >
+        <Maximize2 aria-hidden="true" />
+      </button>
       <div className="map-hint">
         {stations.length
           ? "Clique em uma estação INMET para usar a normal climatológica"

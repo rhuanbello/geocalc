@@ -6,6 +6,7 @@ export type ReferenceSource = {
 
 export type MethodologySection = {
   title: string;
+  note?: string;
   body: string;
   formulas?: string[];
 };
@@ -46,7 +47,7 @@ export const REFERENCE_SOURCES: ReferenceSource[] = [
   {
     label: "INMET Normais Climatológicas do Brasil",
     description:
-      "Fonte observacional por estação meteorológica usada quando o usuário seleciona uma estação INMET completa para 1991-2020.",
+      "Fonte observacional por estação meteorológica usada quando o usuário seleciona uma estação INMET completa para 1961-1990, 1981-2010 ou 1991-2020.",
     href: "https://portal.inmet.gov.br/normais",
   },
   {
@@ -69,76 +70,64 @@ export const REFERENCE_SOURCES: ReferenceSource[] = [
 
 export const WATER_BALANCE_METHODOLOGY: MethodologySection[] = [
   {
-    title: "O que é o balanço hídrico",
+    title: "O que é o Balanço Hídrico (BH)?",
     body:
-      "O Balanço Hídrico (BH) compara a água que entra e a água que sai de um espaço, como uma bacia hidrográfica, durante um período de tempo. Ele permite observar se houve sobra ou falta potencial de água no período analisado.",
+      "O Balanço Hídrico (BH), grosso modo, compara a quantidade de água que entra e a que sai de um território, p.ex. uma bacia hidrográfica, durante um período de tempo. O BH permite contabilizar a variação entre os volumes de entrada e saída de água no território no período analisado.",
   },
   {
-    title: "Entrada e saída de água",
+    title: "Entrada e saída de água no BH",
     body:
-      "Na formulação usada aqui, a entrada é a precipitação mensal (P), medida em milímetros. A saída é a evapotranspiração potencial (Etp), que representa a demanda de perda de água para a atmosfera.",
+      "Na formulação usada aqui: (i) a entrada de água é a precipitação acumulada mensal (P); e, a saída é a evapotranspiração potencial mensal (Etp), que representa a perda de água para a atmosfera. Ambas medidas em milímetros (mm).",
     formulas: ["BH = P - Etp"],
   },
   {
     title: "Por que estimar a Etp",
     body:
-      "Como muitas estações meteorológicas não medem a Etp diretamente em campo, o cálculo usa a fórmula de Thornthwaite para estimar a Etp mensal a partir da temperatura média mensal.",
-    formulas: ["Etp mensal = 16 * (10t / I)^a"],
+      "Como muitas estações meteorológicas não medem a Etp diretamente em campo, o cálculo usa a fórmula de Thornthwaite (1948) para estimar a Etp mensal a partir da temperatura média mensal.",
+    formulas: ["\\text{Etp mensal} = 16 * (10t / I)^a"],
   },
   {
-    title: "Índices de Thornthwaite",
+    title: "Índices na fórmula de Thornthwaite",
     body:
-      "O índice calorimétrico mensal (i) é calculado para cada mês a partir da temperatura. A soma desses índices forma o índice anual (I), usado para calcular o expoente a da fórmula.",
+      "O índice calorimétrico mensal (i) é calculado para cada mês a partir da temperatura. A soma dos índices mensais fornece o índice anual (I), usado para calcular o expoente “a” da fórmula.",
     formulas: [
-      "i = (t / 5)^1,514",
+      "i = (t / 5)^{1,514}",
       "I = soma(i)",
-      "a = (675 * 10^-9 * I^3) - (771 * 10^-7 * I^2) + (0,01792 * I) + 0,49239",
+      "a = (675 * 10^{-9} * I^3) - (771 * 10^{-7} * I^2) + (0,01792 * I) + 0,49239",
     ],
   },
   {
-    title: "Correção por latitude",
+    title: "Correção de Etp para a latitude",
     body:
-      "A equação de Thornthwaite foi proposta para condições padronizadas de Equador, mês de 30 dias e 12 horas de insolação diária. Por isso, a Etp é multiplicada por um fator de correção associado ao hemisfério, ao mês e à latitude de referência.",
-    formulas: ["Etp corrigida = Etp * FC", "BH = P - Etp corrigida"],
+      "A equação de Thornthwaite foi proposta para condições padronizadas no Equador, mês de 30 dias e 12 horas de insolação diária. Por isso, a Etp é multiplicada por um fator de correção (FC) associado ao hemisfério, ao mês e à latitude do território considerado.",
+    formulas: ["\\text{Etp corrigida} = Etp * FC", "BH = P - \\text{Etp corrigida}"],
   },
   {
-    title: "Superávit e déficit",
+    title: "Superávit (SH) e Déficit (DH) Hídricos",
     body:
-      "Quando o resultado mensal é positivo, há superávit hídrico (SH). Quando é negativo, há déficit hídrico (DH), indicando que a demanda de evapotranspiração superou a entrada de água pela chuva.",
-    formulas: ["SH = valores positivos de BH", "DH = valores negativos de BH"],
+      "Quando o resultado do BH mensal é positivo, há superávit hídrico (SH). Quando é negativo, há déficit hídrico (DH), indicando que a evapotranspiração superou a entrada de água pela precipitação.",
+    formulas: [
+      "SH = \\text{valores positivos de BH}",
+      "DH = \\text{valores negativos de BH}",
+    ],
   },
 ];
 
 export const CLIMATE_IMPORT_METHODOLOGY: MethodologySection[] = [
   {
-    title: "Fontes de chuva e temperatura",
-    body:
-      "O GeoCalc pode usar estimativas por coordenada da Open-Meteo/ERA5 ou dados observacionais por estação das Normais Climatológicas do INMET, quando disponíveis.",
-  },
-  {
     title: "INMET por estação",
     body:
-      "Quando uma estação INMET é selecionada, a tabela recebe diretamente os valores mensais de precipitação e temperatura da normal climatológica 1991-2020 daquela estação.",
+      "A fonte principal são as Normais Climatológicas do INMET: 1961-1990, 1981-2010 e 1991-2020. Ao selecionar uma estação completa, a tabela recebe diretamente os valores mensais de precipitação (P) e temperatura (t) da normal escolhida.",
   },
   {
-    title: "Precipitação mensal",
+    title: "Open-Meteo/ERA5 por coordenada",
     body:
-      "A precipitação vem dia a dia. Para representar um mês, o GeoCalc soma todos os valores diários de chuva daquele mês, chegando à precipitação mensal acumulada.",
+      "Quando não houver uma estação INMET adequada, o GeoCalc pode estimar os valores para qualquer coordenada. Para cada mês, a precipitação é obtida pela soma diária e a temperatura, pela média das temperaturas médias diárias.",
   },
   {
-    title: "Temperatura mensal",
+    title: "Normal estimada por coordenada",
     body:
-      "A temperatura também vem dia a dia. Para representar um mês, o GeoCalc calcula a média das temperaturas médias diárias registradas naquele mês.",
-  },
-  {
-    title: "Normal do período",
-    body:
-      "Depois de obter os meses de cada ano, o GeoCalc compara meses iguais no período selecionado: janeiros com janeiros, fevereiros com fevereiros, e assim sucessivamente.",
-  },
-  {
-    title: "Meses incompletos",
-    body:
-      "Quando o ano mais recente ainda não tem um mês completo disponível, esse mês não entra na média. Isso evita que poucos dias de chuva ou temperatura representem um mês inteiro.",
+      "Nos anos completos do período selecionado, o GeoCalc reúne meses equivalentes: janeiros com janeiros, fevereiros com fevereiros e assim sucessivamente. As normais mensais de P e t resultantes são usadas no cálculo do BH.",
   },
 ];
 

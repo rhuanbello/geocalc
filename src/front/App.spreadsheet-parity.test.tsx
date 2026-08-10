@@ -136,6 +136,7 @@ describe("App spreadsheet parity", () => {
   test("busca local pelo combobox e seleciona resultado", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await selectOpenMeteo(user);
 
     await user.click(screen.getByRole("combobox", { name: "Buscar local" }));
     await user.type(screen.getByPlaceholderText("Ex.: Niterói, RJ"), "niteroi");
@@ -153,27 +154,41 @@ describe("App spreadsheet parity", () => {
   test("renderiza metodologia, fontes e presets climáticos", async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
+    await selectOpenMeteo(user);
 
     expect(container.querySelector(".header-metrics")).toBeNull();
     expect(screen.getByText("Conceitos básicos e metodologia")).toBeTruthy();
-    expect(screen.getByText("O que é o balanço hídrico")).toBeTruthy();
-    expect(screen.getByText("Entrada e saída de água")).toBeTruthy();
-    expect(screen.getAllByText("BH = P - Etp").length).toBeGreaterThan(0);
-    expect(screen.getByText("Índices de Thornthwaite")).toBeTruthy();
+    expect(screen.getByText("O que é o Balanço Hídrico (BH)?")).toBeTruthy();
+    expect(screen.getByText("Entrada e saída de água no BH")).toBeTruthy();
+    expect(screen.getByText("Por que estimar a Etp")).toBeTruthy();
+    expect(screen.getByText("Índices na fórmula de Thornthwaite")).toBeTruthy();
+    expect(screen.getByText("Correção de Etp para a latitude")).toBeTruthy();
+    expect(screen.getByText("Superávit (SH) e Déficit (DH) Hídricos")).toBeTruthy();
+    expect(container.querySelectorAll(".methodology-card")).toHaveLength(6);
     expect(screen.queryByText("Vazão como aplicação futura")).toBeNull();
     expect(container.querySelector(".methodology-formula-block")).toBeNull();
-    expect(screen.getAllByText("BH = P - Etp corrigida").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("i = (t / 5)^1,514").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/I = soma\(i\)/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/675 \* 10\^-9/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Etp corrigida = Etp * FC").length).toBeGreaterThan(0);
+    const renderedFormulas = Array.from(
+      container.querySelectorAll('annotation[encoding="application/x-tex"]'),
+      (annotation) => annotation.textContent,
+    );
+    expect(renderedFormulas).toEqual(
+      expect.arrayContaining([
+        "BH = P - Etp",
+        "i = (t / 5)^{1,514}",
+        "I = soma(i)",
+        "a = (675 * 10^{-9} * I^3) - (771 * 10^{-7} * I^2) + (0,01792 * I) + 0,49239",
+        "\\text{Etp corrigida} = Etp * FC",
+        "BH = P - \\text{Etp corrigida}",
+      ]),
+    );
     expect(screen.getAllByText(/Thornthwaite/).length).toBeGreaterThan(0);
-    expect(screen.getByText("Fontes de dados da obtenção da precipitação e temperatura")).toBeTruthy();
-    expect(screen.getByText("Precipitação mensal")).toBeTruthy();
-    expect(screen.getByText("Temperatura mensal")).toBeTruthy();
-    expect(screen.getByText("Normal do período")).toBeTruthy();
-    expect(screen.getByText("Meses incompletos")).toBeTruthy();
-    expect(screen.getAllByText(/dados diários/).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("Fontes de dados da obtenção da precipitação e temperatura"),
+    ).toBeTruthy();
+    expect(screen.getByText("INMET por estação")).toBeTruthy();
+    expect(screen.getByText("Open-Meteo/ERA5 por coordenada")).toBeTruthy();
+    expect(screen.getByText("Normal estimada por coordenada")).toBeTruthy();
+    expect(container.querySelectorAll(".climate-method-card")).toHaveLength(3);
     expect(screen.getByText("Referências e fontes")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open-Meteo Historical Weather API" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "INMET Normais Climatológicas do Brasil" })).toBeTruthy();
@@ -229,6 +244,25 @@ describe("App spreadsheet parity", () => {
     expect(januaryPrecipitation.value).toBe("");
   });
 
+  test("sinaliza no campo a temperatura fora da faixa aceita", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByLabelText("Temperatura de Janeiro") as HTMLInputElement;
+    await user.clear(input);
+    await user.type(input, "127,1");
+
+    expect(input.className).toContain("input-invalid");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+
+    fireEvent.focus(input);
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip").textContent).toBe(
+        "Janeiro: temperatura fora da faixa esperada (-60 °C a 70 °C).",
+      );
+    });
+  });
+
   test("preenche os valores da planilha e exibe os resultados arredondados esperados", async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
@@ -282,6 +316,7 @@ describe("App spreadsheet parity", () => {
   test("exibe coordenada selecionada no mapa no campo de local", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await selectOpenMeteo(user);
 
     await user.click(screen.getByText("Selecionar ponto no mapa"));
 
@@ -301,10 +336,10 @@ describe("App spreadsheet parity", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByText("INMET 1991-2020"));
+    await user.click(screen.getByRole("button", { name: "INMET 1991-2020" }));
 
     expect(screen.queryByRole("button", { name: /Importar dados climáticos/i })).toBeNull();
-    expect(screen.getAllByText("Selecione uma estação INMET no mapa ou na busca.").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Selecione uma estação INMET no mapa ou na busca.")).toBeNull();
     expect(screen.getByRole("combobox", { name: "Estação INMET" })).toBeTruthy();
 
     await user.click(screen.getByText("Selecionar estação INMET no mapa"));
@@ -321,10 +356,45 @@ describe("App spreadsheet parity", () => {
     expect(report.value).not.toContain("Open-Meteo Historical Weather API");
   });
 
+  test("seleciona INMET 1981-2010 por estação e preenche a tabela", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "INMET 1981-2010" }));
+    await user.click(screen.getByText("Selecionar estação INMET no mapa"));
+
+    await waitFor(() => {
+      expect((
+        screen.getByLabelText("Precipitação de Janeiro") as HTMLInputElement
+      ).value).toBe("39,7");
+    });
+
+    const report = screen.getByDisplayValue(
+      /Síntese dos resultados/,
+    ) as HTMLTextAreaElement;
+    expect(report.value).toContain(
+      "Fonte dos dados: INMET Normais Climatológicas do Brasil 1981-2010",
+    );
+    expect(report.value).toContain("Estação INMET: 82989 - ÁGUA BRANCA, AL");
+  });
+
+  test("usa INMET como fonte inicial e disponibiliza a normal 1961-1990", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByRole("combobox", { name: "Estação INMET" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "INMET 1961-1990" }));
+    await user.click(screen.getByText("Selecionar estação INMET no mapa"));
+
+    await waitFor(() => {
+      expect((screen.getByLabelText("Precipitação de Janeiro") as HTMLInputElement).value).not.toBe("");
+    });
+  });
+
   test("simplifica a sidebar", () => {
     render(<App />);
 
-    expect(screen.getByText("Balanço Hídrico")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Balanço Hídrico" })).toBeTruthy();
     expect(screen.queryByText("Modelos geoquímicos")).toBeNull();
     expect(screen.queryByText(/Ferramenta educacional/)).toBeNull();
   });
@@ -372,4 +442,8 @@ async function chooseCombobox(
   await user.click(screen.getByRole("combobox", { name: label }));
   const matches = screen.getAllByText(option);
   await user.click(matches[matches.length - 1]);
+}
+
+async function selectOpenMeteo(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: /Open-Meteo\/ERA5/ }));
 }

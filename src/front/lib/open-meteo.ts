@@ -72,7 +72,7 @@ export async function searchLocations(
     name: trimmedQuery,
     count: "6",
     language: "pt",
-    format: "json",
+    format: "json"
   });
   const response = await fetch(
     `https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`,
