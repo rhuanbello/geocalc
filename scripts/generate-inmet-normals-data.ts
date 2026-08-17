@@ -13,7 +13,7 @@ const OUTPUT_DIR = path.join(ROOT_DIR, "src/shared/data");
 
 export type InmetNormalPeriod = "1961-1990" | "1981-2010" | "1991-2020";
 
-type PeriodConfig = {
+export type PeriodConfig = {
   period: InmetNormalPeriod;
   directory: string;
   stationFile: string;
@@ -30,7 +30,7 @@ type PeriodConfig = {
   };
 };
 
-const PERIODS: Record<InmetNormalPeriod, PeriodConfig> = {
+export const INMET_NORMAL_PERIODS: Record<InmetNormalPeriod, PeriodConfig> = {
   "1961-1990": {
     period: "1961-1990",
     directory: "1961 - 1990",
@@ -61,7 +61,7 @@ async function main() {
   const requestedPeriod = process.argv
     .find((argument) => argument.startsWith("--period="))
     ?.replace("--period=", "") as InmetNormalPeriod | undefined;
-  const periods = requestedPeriod ? [getPeriodConfig(requestedPeriod)] : Object.values(PERIODS);
+  const periods = requestedPeriod ? [getPeriodConfig(requestedPeriod)] : Object.values(INMET_NORMAL_PERIODS);
 
   await mkdir(OUTPUT_DIR, { recursive: true });
   for (const config of periods) {
@@ -100,8 +100,8 @@ export function readPeriodDataset(config: PeriodConfig) {
   });
 }
 
-function getPeriodConfig(period: string): PeriodConfig {
-  const config = PERIODS[period as InmetNormalPeriod];
+export function getPeriodConfig(period: string): PeriodConfig {
+  const config = INMET_NORMAL_PERIODS[period as InmetNormalPeriod];
   if (!config) {
     throw new Error(`Período INMET inválido: ${period}.`);
   }

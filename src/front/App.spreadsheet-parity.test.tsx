@@ -187,7 +187,7 @@ describe("App spreadsheet parity", () => {
     ).toBeTruthy();
     expect(screen.getByText("INMET por estação")).toBeTruthy();
     expect(screen.getByText("Open-Meteo/ERA5 por coordenada")).toBeTruthy();
-    expect(screen.getByText("Normal estimada por coordenada")).toBeTruthy();
+    expect(screen.getByText("Estações disponíveis no GeoCalc")).toBeTruthy();
     expect(container.querySelectorAll(".climate-method-card")).toHaveLength(3);
     expect(screen.getByText("Referências e fontes")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open-Meteo Historical Weather API" })).toBeTruthy();
@@ -305,9 +305,11 @@ describe("App spreadsheet parity", () => {
     expect(report.value).toContain("Maior superávit: Junho (105,0 mm)");
     expect(report.value).toContain("https://doi.org/10.2307/210739");
     expect(report.value).not.toContain("jstor.org");
-    expect(screen.getByText("Entenda as variáveis")).toBeTruthy();
-    expect(screen.getAllByText("SH").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("DH").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Entenda as variáveis")).toBeNull();
+    expect(screen.getByText(/t ou T/)).toBeTruthy();
+    expect(screen.getByText(/Etp é, portanto/)).toBeTruthy();
+    expect(screen.getByText(/fator de correção \(FC\)/)).toBeTruthy();
+    expect(screen.getByText(/superávit hídrico \(SH\)/)).toBeTruthy();
     expect(screen.queryByText("Preenchimento manual")).toBeNull();
     expect(screen.queryByText("A tabela começa vazia.")).toBeNull();
     expect(screen.queryByText("Relatório didático")).toBeNull();
@@ -383,6 +385,12 @@ describe("App spreadsheet parity", () => {
     render(<App />);
 
     expect(screen.getByRole("combobox", { name: "Estação INMET" })).toBeTruthy();
+    expect(
+      screen
+        .getAllByRole("button", { name: /INMET (1961-1990|1981-2010|1991-2020)/ })
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["INMET 1961-1990", "INMET 1981-2010", "INMET 1991-2020"]);
+    expect(screen.getByRole("button", { name: "INMET 1991-2020" }).className).toContain("active");
     await user.click(screen.getByRole("button", { name: "INMET 1961-1990" }));
     await user.click(screen.getByText("Selecionar estação INMET no mapa"));
 

@@ -1,5 +1,6 @@
 import {
   calculateWaterBalance,
+  MONTHS,
   nearestFactorSelection,
   type FactorSelection,
   type MonthlyInput,
@@ -37,9 +38,27 @@ export type InmetExcludedStation = {
   reason: string;
 };
 
+export type InmetStationAudit = {
+  code: string;
+  name: string;
+  uf: string;
+  latitude: number | null;
+  longitude: number | null;
+  altitude: number | null;
+  hasMetadata: boolean;
+  hasValidCoordinates: boolean;
+  hasPrecipitationRecord: boolean;
+  hasTemperatureRecord: boolean;
+  missingPrecipitationMonths: string[];
+  missingTemperatureMonths: string[];
+  reasons: string[];
+  status: "valid" | "excluded";
+};
+
 export type InmetValidationDataset = {
   validStations: InmetValidStation[];
   excludedStations: InmetExcludedStation[];
+  stationAudits: InmetStationAudit[];
   totals: {
     stations: number;
     precipitation: number;
@@ -129,6 +148,7 @@ export function buildInmetValidationDataset(params: {
 
   const validStations: InmetValidStation[] = [];
   const excludedStations: InmetExcludedStation[] = [];
+  const stationAudits: InmetStationAudit[] = [];
 
   [...candidateCodes].sort().forEach((code) => {
     const station = stationsByCode.get(code);
@@ -137,10 +157,15 @@ export function buildInmetValidationDataset(params: {
     const name =
       station?.name ?? precipitation?.name ?? temperature?.name ?? "Sem nome";
     const uf = station?.uf ?? precipitation?.uf ?? temperature?.uf ?? "";
-    const reason = exclusionReason(station, precipitation, temperature);
+    const audit = buildStationAudit(station, precipitation, temperature, {
+      code,
+      name,
+      uf,
+    });
+    stationAudits.push(audit);
 
-    if (reason) {
-      excludedStations.push({ code, name, uf, reason });
+    if (audit.status === "excluded") {
+      excludedStations.push({ code, name, uf, reason: audit.reasons[0] ?? "dado inválido" });
       return;
     }
 
@@ -154,6 +179,7 @@ export function buildInmetValidationDataset(params: {
   return {
     validStations,
     excludedStations,
+    stationAudits,
     totals: {
       stations: params.stations.length,
       precipitation: params.precipitationRecords.length,
@@ -162,6 +188,65 @@ export function buildInmetValidationDataset(params: {
       excluded: excludedStations.length,
     },
   };
+}
+
+export function buildStationAudit(
+  station: InmetStation | undefined,
+  precipitation: InmetMonthlyRecord | undefined,
+  temperature: InmetMonthlyRecord | undefined,
+  identity: { code: string; name: string; uf: string },
+): InmetStationAudit {
+  const missingPrecipitationMonths = missingMonthNames(precipitation);
+  const missingTemperatureMonths = missingMonthNames(temperature);
+  const reasons: string[] = [];
+  const hasMetadata = Boolean(station);
+  const hasValidCoordinates = Boolean(
+    station && isNumber(station.latitude) && isNumber(station.longitude),
+  );
+
+  if (!hasMetadata) reasons.push("sem metadados da estação");
+  if (hasMetadata && !hasValidCoordinates) reasons.push("sem coordenada válida");
+  if (!precipitation) {
+    reasons.push("sem registro de precipitação");
+  } else if (missingPrecipitationMonths.length) {
+    reasons.push("precipitação mensal incompleta");
+  }
+  if (!temperature) {
+    reasons.push("sem registro de temperatura");
+  } else if (missingTemperatureMonths.length) {
+    reasons.push("temperatura mensal incompleta");
+  }
+
+  return {
+    ...identity,
+    latitude: station?.latitude ?? null,
+    longitude: station?.longitude ?? null,
+    altitude: station?.altitude ?? null,
+    hasMetadata,
+    hasValidCoordinates,
+    hasPrecipitationRecord: Boolean(precipitation),
+    hasTemperatureRecord: Boolean(temperature),
+    missingPrecipitationMonths,
+    missingTemperatureMonths,
+    reasons,
+    status: reasons.length ? "excluded" : "valid",
+  };
+}
+
+export function geographicDistanceKm(
+  first: { latitude: number; longitude: number },
+  second: { latitude: number; longitude: number },
+): number {
+  const earthRadiusKm = 6371.0088;
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDelta = toRadians(second.latitude - first.latitude);
+  const longitudeDelta = toRadians(second.longitude - first.longitude);
+  const latitude1 = toRadians(first.latitude);
+  const latitude2 = toRadians(second.latitude);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(latitude1) * Math.cos(latitude2) * Math.sin(longitudeDelta / 2) ** 2;
+  return 2 * earthRadiusKm * Math.asin(Math.sqrt(haversine));
 }
 
 export function compareStationWithEra5(
@@ -229,36 +314,11 @@ export function hasCompleteMonthlyValues(record?: InmetMonthlyRecord): boolean {
   return record.monthly.length === 12 && record.monthly.every(isNumber);
 }
 
-function exclusionReason(
-  station?: InmetStation,
-  precipitation?: InmetMonthlyRecord,
-  temperature?: InmetMonthlyRecord,
-): string | null {
-  if (!station) {
-    return "sem metadados da estação";
-  }
-
-  if (!isNumber(station.latitude) || !isNumber(station.longitude)) {
-    return "sem coordenada válida";
-  }
-
-  if (!precipitation) {
-    return "sem registro de precipitação";
-  }
-
-  if (!hasCompleteMonthlyValues(precipitation)) {
-    return "precipitação mensal incompleta";
-  }
-
-  if (!temperature) {
-    return "sem registro de temperatura";
-  }
-
-  if (!hasCompleteMonthlyValues(temperature)) {
-    return "temperatura mensal incompleta";
-  }
-
-  return null;
+function missingMonthNames(record?: InmetMonthlyRecord): string[] {
+  if (!record) return [];
+  return MONTHS.flatMap((month, index) =>
+    isNumber(record.monthly[index]) ? [] : [month.name],
+  );
 }
 
 function buildAnnualValues(

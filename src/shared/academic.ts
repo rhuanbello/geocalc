@@ -77,13 +77,13 @@ export const WATER_BALANCE_METHODOLOGY: MethodologySection[] = [
   {
     title: "Entrada e saída de água no BH",
     body:
-      "Na formulação usada aqui: (i) a entrada de água é a precipitação acumulada mensal (P); e, a saída é a evapotranspiração potencial mensal (Etp), que representa a perda de água para a atmosfera. Ambas medidas em milímetros (mm).",
+      "Na formulação usada aqui, a entrada de água é a precipitação acumulada mensal (P), em milímetros (mm). A saída é a evapotranspiração potencial mensal (Etp), também em mm, que representa a perda potencial de água para a atmosfera. A temperatura média mensal é indicada por t ou T, em graus Celsius (°C), e é usada para estimar a Etp.",
     formulas: ["BH = P - Etp"],
   },
   {
     title: "Por que estimar a Etp",
     body:
-      "Como muitas estações meteorológicas não medem a Etp diretamente em campo, o cálculo usa a fórmula de Thornthwaite (1948) para estimar a Etp mensal a partir da temperatura média mensal.",
+      "Como muitas estações meteorológicas não medem a Etp diretamente em campo, o cálculo usa a fórmula de Thornthwaite (1948) para estimar a Etp mensal a partir da temperatura média mensal. Etp é, portanto, a evapotranspiração potencial calculada antes da correção por latitude.",
     formulas: ["\\text{Etp mensal} = 16 * (10t / I)^a"],
   },
   {
@@ -99,13 +99,13 @@ export const WATER_BALANCE_METHODOLOGY: MethodologySection[] = [
   {
     title: "Correção de Etp para a latitude",
     body:
-      "A equação de Thornthwaite foi proposta para condições padronizadas no Equador, mês de 30 dias e 12 horas de insolação diária. Por isso, a Etp é multiplicada por um fator de correção (FC) associado ao hemisfério, ao mês e à latitude do território considerado.",
+      "A equação de Thornthwaite foi proposta para condições padronizadas no Equador, mês de 30 dias e 12 horas de insolação diária. Por isso, a Etp é multiplicada por um fator de correção (FC) associado ao hemisfério, ao mês e à latitude do território considerado. O resultado é a Etp corrigida, usada no BH.",
     formulas: ["\\text{Etp corrigida} = Etp * FC", "BH = P - \\text{Etp corrigida}"],
   },
   {
     title: "Superávit (SH) e Déficit (DH) Hídricos",
     body:
-      "Quando o resultado do BH mensal é positivo, há superávit hídrico (SH). Quando é negativo, há déficit hídrico (DH), indicando que a evapotranspiração superou a entrada de água pela precipitação.",
+      "BH é o saldo mensal entre a precipitação e a Etp corrigida. Quando o resultado é positivo, há superávit hídrico (SH). Quando é negativo, há déficit hídrico (DH), indicando que a evapotranspiração superou a entrada de água pela precipitação.",
     formulas: [
       "SH = \\text{valores positivos de BH}",
       "DH = \\text{valores negativos de BH}",
@@ -125,9 +125,9 @@ export const CLIMATE_IMPORT_METHODOLOGY: MethodologySection[] = [
       "Quando não houver uma estação INMET adequada, o GeoCalc pode estimar os valores para qualquer coordenada. Para cada mês, a precipitação é obtida pela soma diária e a temperatura, pela média das temperaturas médias diárias.",
   },
   {
-    title: "Normal estimada por coordenada",
+    title: "Estações disponíveis no GeoCalc",
     body:
-      "Nos anos completos do período selecionado, o GeoCalc reúne meses equivalentes: janeiros com janeiros, fevereiros com fevereiros e assim sucessivamente. As normais mensais de P e t resultantes são usadas no cálculo do BH.",
+      "Para assegurar que a tabela de cálculo seja preenchida com uma normal mensal completa, o GeoCalc mostra somente estações INMET que possuem os 12 meses válidos de precipitação e temperatura, além de coordenadas geográficas válidas. Registros incompletos permanecem fora da seleção pública.",
   },
 ];
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildInmetValidationDataset,
   compareStationWithEra5,
+  geographicDistanceKm,
   type InmetMonthlyRecord,
   type InmetStation,
 } from "./inmet-validation";
@@ -56,6 +57,30 @@ describe("INMET validation helpers", () => {
         reason: "precipitação mensal incompleta",
       },
     ]);
+    expect(dataset.stationAudits).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "4",
+          status: "excluded",
+          missingPrecipitationMonths: ["Fevereiro"],
+          missingTemperatureMonths: [],
+        }),
+        expect.objectContaining({
+          code: "3",
+          status: "excluded",
+          hasValidCoordinates: false,
+        }),
+      ]),
+    );
+  });
+
+  test("calculates geographic distance in kilometers", () => {
+    expect(
+      geographicDistanceKm(
+        { latitude: 0, longitude: 0 },
+        { latitude: 0, longitude: 1 },
+      ),
+    ).toBeCloseTo(111.195, 2);
   });
 
   test("compares INMET and ERA5 with the same water balance calculation", () => {

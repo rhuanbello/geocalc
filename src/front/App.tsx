@@ -8,7 +8,6 @@ import {
   Database,
   Download,
   FileText,
-  Info,
   Loader2,
   MapPin,
 } from "lucide-react";
@@ -17,7 +16,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
@@ -600,8 +598,6 @@ export function App() {
             onClearInputs={clearInputs}
           />
 
-          <VariableGuide />
-
           <FullWidthChart chartData={chartData} hasAnyInput={hasAnyInput} />
 
           <ReportPanel report={report} onCopy={copyReport} onExport={exportExcel} />
@@ -840,13 +836,11 @@ function ClimatePanel({
               <div className="source-period-toggle" role="group" aria-label="Período de referência INMET">
                 <button
                   type="button"
-                  aria-label="INMET 1991-2020"
-                  className={selectedInmetPeriod === "1991-2020" ? "active" : ""}
-                  onClick={() => onInmetPeriodChange("1991-2020")}
+                  aria-label="INMET 1961-1990"
+                  className={selectedInmetPeriod === "1961-1990" ? "active" : ""}
+                  onClick={() => onInmetPeriodChange("1961-1990")}
                 >
-                  <span className="source-title">
-                    1991-2020
-                  </span>
+                  <span className="source-title">1961-1990</span>
                 </button>
                 <button
                   type="button"
@@ -858,11 +852,11 @@ function ClimatePanel({
                 </button>
                 <button
                   type="button"
-                  aria-label="INMET 1961-1990"
-                  className={selectedInmetPeriod === "1961-1990" ? "active" : ""}
-                  onClick={() => onInmetPeriodChange("1961-1990")}
+                  aria-label="INMET 1991-2020"
+                  className={selectedInmetPeriod === "1991-2020" ? "active" : ""}
+                  onClick={() => onInmetPeriodChange("1991-2020")}
                 >
-                  <span className="source-title">1961-1990</span>
+                  <span className="source-title">1991-2020</span>
                 </button>
               </div>
             </div>
@@ -1395,40 +1389,6 @@ function ReferencePanel() {
             )}
             <span>{source.description}</span>
           </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function VariableGuide() {
-  const variables = [
-    ["P", "Precipitação mensal acumulada, em milímetros."],
-    ["T", "Temperatura média mensal, em graus Celsius."],
-    ["FC", "Fator de correção mensal associado ao hemisfério e à latitude."],
-    ["i", "Índice calorimétrico mensal calculado a partir da temperatura."],
-    ["I", "Soma anual dos índices calorimétricos mensais."],
-    ["a", "Expoente anual usado na fórmula de Thornthwaite."],
-    ["ETP", "Evapotranspiração potencial antes da correção mensal."],
-    ["ETP corr.", "ETP multiplicada pelo fator mensal de correção."],
-    ["BH", "Saldo mensal entre chuva e ETP corrigida."],
-    ["SH", "Superávit hídrico: valores positivos de BH."],
-    ["DH", "Déficit hídrico: valores negativos de BH."],
-  ];
-
-  return (
-    <section className="panel variable-guide">
-      <PanelTitle
-        icon={<Info className="size-4" />}
-        title="Entenda as variáveis"
-        description="Uma legenda rápida para interpretar a tabela de cálculo e o relatório."
-      />
-      <div className="variable-grid">
-        {variables.map(([term, description]) => (
-          <div className="variable-card" key={term}>
-            <strong>{term}</strong>
-            <span>{description}</span>
-          </div>
         ))}
       </div>
     </section>
