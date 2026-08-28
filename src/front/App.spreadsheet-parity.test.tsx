@@ -399,12 +399,57 @@ describe("App spreadsheet parity", () => {
     });
   });
 
-  test("simplifica a sidebar", () => {
+  test("navega entre os módulos pela sidebar", async () => {
+    const user = userEvent.setup();
     render(<App />);
 
-    expect(screen.getByRole("link", { name: "Balanço Hídrico" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Balanço Hídrico" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Perda de Solos (EUPS)" })).toBeTruthy();
     expect(screen.queryByText("Modelos geoquímicos")).toBeNull();
     expect(screen.queryByText(/Ferramenta educacional/)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Perda de Solos (EUPS)" }));
+    expect(screen.getByRole("heading", { name: "Perda de Solo (EUPS)" })).toBeTruthy();
+    expect(screen.getByText("Conceitos básicos e metodologia")).toBeTruthy();
+    expect(screen.getByText("Chuva e erosividade")).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Referência de tipo de solo" })).toBeTruthy();
+    expect(screen.getByLabelText("Cobertura, manejo e conservação")).toBeTruthy();
+    expect(screen.getByText("Tabela de cálculo e resultado")).toBeTruthy();
+    [
+      "Erosão laminar",
+      "Equação Universal de Perda de Solo (EUPS)",
+      "Erosividade da chuva (R)",
+      "Erodibilidade do solo (K)",
+      "Fator topográfico (LS)",
+      "Cobertura, manejo e conservação (CP)",
+    ].forEach((title) => expect(screen.getByText(title)).toBeTruthy());
+    expect(screen.getByText("Referências e fontes")).toBeTruthy();
+    expect(screen.getAllByText(/Tabela de referência EUPS/).length).toBeGreaterThan(0);
+    expect((screen.getByLabelText("Síntese dos resultados da EUPS") as HTMLTextAreaElement).value).not.toMatch(/Bida/i);
+    expect(screen.queryByText(/Bida/i)).toBeNull();
+    expect(screen.queryByText("Potencial natural de erosão")).toBeNull();
+    expect(screen.queryByText(/Etapa 0/)).toBeNull();
+    expect(screen.queryByText("Mapa de erosividade")).toBeNull();
+    expect(screen.queryByText("Importar precipitação")).toBeNull();
+  });
+
+  test("aplica referências didáticas de K e CP sem preencher fatores espaciais", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Perda de Solos (EUPS)" }));
+
+    await user.click(screen.getByRole("combobox", { name: "Referência de tipo de solo" }));
+    await user.click(screen.getByText("Areia quartzosa"));
+    expect((screen.getByLabelText("Fator K") as HTMLInputElement).value).toBe("0,027");
+
+    await user.click(screen.getByRole("combobox", { name: "Referência de cobertura e manejo" }));
+    await user.click(screen.getByText("Floresta nativa"));
+    expect((screen.getByLabelText("Cobertura, manejo e conservação") as HTMLInputElement).value).toBe("0,01");
+
+    await user.click(screen.getByRole("combobox", { name: "Referência de tipo de solo" }));
+    await user.click(screen.getByText("Latossolo V-A"));
+    expect((screen.getByLabelText("Fator K") as HTMLInputElement).value).toBe("");
+    expect(screen.getByText(/Faixa de referência: 0,013 a 0,020/)).toBeTruthy();
   });
 
   test("usa linhas para precipitacao e ETP e barras para BH", () => {

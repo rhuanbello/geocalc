@@ -111,6 +111,7 @@ button:disabled {
 }
 
 .sidebar-nav a,
+.sidebar-nav button,
 .sidebar-nav span {
   min-height: 42px;
   display: flex;
@@ -123,6 +124,14 @@ button:disabled {
   font-weight: 800;
 }
 
+.sidebar-nav button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+}
+
 .sidebar-nav svg {
   width: 18px;
   height: 18px;
@@ -132,6 +141,64 @@ button:disabled {
 .sidebar-nav .active {
   background: #f8f3e9;
   color: var(--sidebar);
+}
+
+.eups-errors span {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.eups-errors { display: flex; flex-wrap: wrap; gap: 5px 8px; margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--warning); border-radius: 0 6px 6px 0; background: #fff9ed; }
+.eups-errors strong { color: #6a4b0e; font-size: 0.84rem; }
+.eups-errors span { margin: 0; }
+
+.eups-notice { position: fixed; right: 18px; bottom: 18px; z-index: 1300; display: flex; align-items: center; gap: 12px; max-width: 390px; padding: 11px 13px; border: 1px solid rgb(0 155 110 / 0.32); border-radius: 8px; background: #edf9f4; box-shadow: 0 16px 40px rgb(26 59 41 / 0.18); color: var(--brand-dark); font-size: 0.87rem; font-weight: 700; }
+.eups-notice button { border: 0; background: transparent; color: inherit; font-size: 1.15rem; }
+
+/* EUPS shares the BH's panels and tables; these rules only cover its factors. */
+.eups-methodology-panel .methodology-card { min-height: 172px; }
+.eups-input-panel .panel-title { margin-bottom: 14px; }
+.eups-step-guidance { display: grid; gap: 7px; margin-bottom: 14px; padding: 14px; border-left: 3px solid var(--brand-green); border-radius: 0 7px 7px 0; background: #f7fbf8; }
+.eups-step-guidance strong { color: var(--brand-dark); font-size: 0.86rem; }
+.eups-step-guidance > div { display: grid; gap: 8px; color: var(--muted); font-size: 0.85rem; line-height: 1.55; }
+.eups-step-guidance small { color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+.eups-step-guidance .formula .katex-display { margin: 2px 0 0; padding: 0; font-size: 0.84rem; text-align: left; }
+.eups-rainfall-table, .eups-final-table { min-width: 680px; }
+.eups-rainfall-table th, .eups-rainfall-table td { text-align: left; }
+.eups-rainfall-table th:nth-child(1), .eups-rainfall-table td:nth-child(1) { width: 44%; }
+.eups-rainfall-table th:nth-child(2), .eups-rainfall-table td:nth-child(2), .eups-rainfall-table th:nth-child(3), .eups-rainfall-table td:nth-child(3) { width: 28%; }
+.eups-final-table th:nth-child(1), .eups-final-table td:nth-child(1) { width: 12%; }
+.eups-final-table th:nth-child(2), .eups-final-table td:nth-child(2) { width: 18%; }
+.eups-final-table th:nth-child(3), .eups-final-table td:nth-child(3) { width: 22%; }
+.eups-final-table th:nth-child(4), .eups-final-table td:nth-child(4) { width: 13%; }
+.eups-final-table th:nth-child(5), .eups-final-table td:nth-child(5) { width: 35%; }
+.eups-rainfall-table tfoot td, .eups-final-table tfoot td { color: var(--brand-dark); background: #f0faf5; font-weight: 900; }
+.eups-full-inputs { display: grid; gap: 12px; }
+.eups-input-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.eups-number-field { display: grid; gap: 7px; }
+.eups-number-field > span { display: flex; justify-content: space-between; gap: 8px; color: var(--brand-dark); font-size: 0.83rem; font-weight: 900; }
+.eups-number-field > span small { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.eups-number-field input { min-height: 39px; border-color: rgb(0 155 110 / 0.44); background: #e9f8f0; color: var(--brand-dark); font-weight: 800; }
+.eups-number-field em { color: var(--muted); font-size: 0.77rem; font-style: normal; line-height: 1.45; }
+.eups-derived-field { display: grid; align-content: center; gap: 3px; min-height: 39px; padding: 8px 11px; border: 1px solid rgb(0 155 110 / 0.25); border-radius: 6px; background: #f1faf5; }
+.eups-derived-field > span, .eups-derived-field small { color: var(--muted); font-size: 0.72rem; }
+.eups-derived-field strong { color: var(--brand-dark); font-family: "Roboto Slab", Georgia, serif; font-size: 1.1rem; }
+.eups-complete { display: flex; align-items: center; gap: 8px; margin-top: 13px; padding: 11px 13px; border-left: 3px solid var(--brand-green); border-radius: 0 6px 6px 0; background: #edf9f4; color: var(--brand-dark); font-size: 0.85rem; font-weight: 700; }
+.eups-complete svg { width: 18px; height: 18px; color: var(--brand-green); }
+.eups-reference-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 900px) {
+  .eups-input-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1120px) {
+  .eups-reference-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .eups-reference-grid, .eups-input-grid { grid-template-columns: 1fr; }
 }
 
 .sidebar-nav .disabled {
